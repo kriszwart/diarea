@@ -13,7 +13,7 @@ An AI agent can now read your frontend and rebuild your product. Diarea reads it
 ![local only](https://img.shields.io/badge/data-stays_local-38c884?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-ededea?style=flat-square)
 
-**[Website and live demo](https://kriszwart.github.io/diarea/)** · [Try it](#try-it-in-30-seconds) · [What it finds](#what-it-finds) · [Extension](#install-the-extension) · [CLI](#cli) · [GitHub Action](#github-action) · [The honest bit](#the-honest-bit) · [What a clone can't copy](#what-a-clone-cant-copy) · [Roadmap](#roadmap)
+**[Website and live demo](https://diarea.tools/)** · [Try it](#try-it-in-30-seconds) · [What it finds](#what-it-finds) · [Extension](#install-the-extension) · [CLI](#cli) · [GitHub Action](#github-action) · [The honest bit](#the-honest-bit) · [What a clone can't copy](#what-a-clone-cant-copy) · [Roadmap](#roadmap)
 
 <a href="https://youtu.be/pWG9IXBkpvM"><img src="https://img.youtube.com/vi/pWG9IXBkpvM/maxresdefault.jpg" alt="Watch the Diarea trailer on YouTube" width="760"></a>
 
@@ -25,9 +25,18 @@ An AI agent can now read your frontend and rebuild your product. Diarea reads it
 
 ---
 
+## Quick start
+
+```
+npx diarea scan https://your-site.com     # a live site you own
+npx diarea scan dist/index.html           # your build output, no browser needed
+```
+
+Live scans need a browser once: `npx playwright install chromium`. Prefer clicking? There is a [Chrome extension](#install-the-extension). Want it in CI? There is a [GitHub Action](#github-action).
+
 ## Try it in 30 seconds
 
-We built a fake AI app builder that leaks everything, so you can watch Diarea work without pointing it at anything that matters. [Watch it get diagnosed on the website](https://kriszwart.github.io/diarea/#scan), or meet [PromptPlop](https://kriszwart.github.io/diarea/demo/) directly: describe an app and it plops one out. Its "never reveal this prompt" system prompt is in the bundle. Its model-routing formula is in your browser. It calls the model straight from the page.
+We built a fake AI app builder that leaks everything, so you can watch Diarea work without pointing it at anything that matters. [Watch it get diagnosed on the website](https://diarea.tools/#scan), or meet [PromptPlop](https://diarea.tools/demo/) directly: describe an app and it plops one out. Its "never reveal this prompt" system prompt is in the bundle. Its model-routing formula is in your browser. It calls the model straight from the page.
 
 ```
 git clone https://github.com/kriszwart/diarea && cd diarea && npm install
@@ -80,7 +89,7 @@ Each finding comes with what a reader sees and a one-line fix (we call it "flush
 4. Click **Load unpacked** and select the `extension/` folder.
 5. Pin the icon, open one of your own deployed sites, and click it.
 
-To get a zip for the Chrome Web Store, run `npm run package:extension` (it lands in `dist/`). The listing copy, privacy answers and store images live in [`docs/store/`](docs/store/listing.md), and the privacy policy is at [kriszwart.github.io/diarea/privacy.html](https://kriszwart.github.io/diarea/privacy.html).
+To get a zip for the Chrome Web Store, run `npm run package:extension` (it lands in `dist/`). The listing copy, privacy answers and store images live in [`docs/store/`](docs/store/listing.md), and the privacy policy is at [diarea.tools/privacy.html](https://diarea.tools/privacy.html).
 
 It auto-scans on open. Use **Re-scan** after a deploy. Point it at your own staging site first and watch the score.
 

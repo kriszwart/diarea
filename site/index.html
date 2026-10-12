@@ -9,8 +9,8 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Diarea: finds what your frontend leaks" />
   <meta property="og:description" content="Exposed keys, source maps, API maps and debug globals, scored from Sealed to Gushing. Chrome extension, CLI and GitHub Action. MIT." />
-  <meta property="og:url" content="https://kriszwart.github.io/diarea/" />
-  <meta property="og:image" content="https://kriszwart.github.io/diarea/assets/social-preview.png" />
+  <meta property="og:url" content="https://diarea.tools/" />
+  <meta property="og:image" content="https://diarea.tools/assets/social-preview.png" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="assets/mascot.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="landing.css" />
@@ -44,7 +44,10 @@
           <a class="btn btn-primary" href="#scan" data-autoscan>Scan the leaky demo</a>
           <a class="btn btn-ghost" href="https://github.com/kriszwart/diarea">Star it on GitHub</a>
         </div>
-        <p class="fine">Exposed keys, source maps, API maps, debug globals and the logic you thought was private.</p>
+        <div class="quick" aria-label="Quick start">
+          <span class="prompt" aria-hidden="true">$</span><code>npx diarea scan https://your-site.com</code><button class="copy" type="button">Copy</button>
+        </div>
+        <p class="fine">Exposed keys, source maps, API maps, AI prompts and the logic you thought was private. No signup, nothing leaves your machine.</p>
       </div>
       <div class="hero-art" aria-hidden="true">
         <img class="mascot" src="assets/mascot.svg" alt="" width="300" height="300" />
@@ -79,7 +82,7 @@
         <figure class="browser">
           <div class="browser-bar" aria-hidden="true">
             <span></span><span></span><span></span>
-            <code>kriszwart.github.io/diarea/demo/</code>
+            <code>diarea.tools/demo/</code>
           </div>
           <div class="browser-view">
             <iframe id="demo-frame" src="demo/" title="PromptPlop, the deliberately leaky demo site" tabindex="-1"></iframe>

@@ -14,7 +14,7 @@ All notable changes to Diarea. Versions follow [semantic versioning](https://sem
 ## 0.2.0
 
 - **Two new checks for AI apps (ten in total).** Flags an AI system prompt shipped in the bundle, and the browser calling an AI model API directly (which usually means a provider key is in the client). Scores can rise for pages with either.
-- **Landing page** at [kriszwart.github.io/diarea](https://kriszwart.github.io/diarea/), with a live diagnosis of the demo run by the real engine, the score bands, install snippets, an FAQ and the trailer (YouTube loads only when you press play).
+- **Landing page** at [diarea.tools](https://diarea.tools/), with a live diagnosis of the demo run by the real engine, the score bands, install snippets, an FAQ and the trailer (YouTube loads only when you press play).
 - **New demo: PromptPlop**, a fictional AI app builder that leaks on purpose and trips every check.
 - **"What a clone can't copy"** in the README and on the site: data, people, trust and the physical world.
 - **One page collector** (`src/collect-page.js`) shared by the extension, the live CLI scan and the landing page. `npm run build` copies it and the engine where the browser needs them.

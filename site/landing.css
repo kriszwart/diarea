@@ -104,8 +104,9 @@ h2 { font-size: clamp(28px, 4.2vw, 42px); }
 .eyebrow { text-transform: uppercase; letter-spacing: 0.12em; font-size: 13px; font-weight: 700; color: var(--brown); margin: 0 0 12px; }
 
 /* Hero */
-.hero { display: grid; gap: 24px; align-items: center; padding-top: 40px; padding-bottom: 56px; }
-@media (min-width: 880px) { .hero { grid-template-columns: 1.25fr 0.75fr; padding-top: 64px; padding-bottom: 88px; } }
+.hero { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: center; padding-top: 40px; padding-bottom: 56px; }
+.hero-copy { min-width: 0; }
+@media (min-width: 880px) { .hero { grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr); padding-top: 64px; padding-bottom: 88px; } }
 .hero h1 { font-size: clamp(42px, 8vw, 84px); letter-spacing: -0.04em; margin-bottom: 20px; }
 .drip { color: var(--accent); position: relative; white-space: nowrap; }
 .drip::after {
@@ -122,7 +123,11 @@ h2 { font-size: clamp(28px, 4.2vw, 42px); }
 .lede { font-size: clamp(18px, 2.1vw, 21px); color: var(--ink-soft); max-width: 600px; margin: 0 0 28px; }
 .lede b { color: var(--ink); }
 .ctas { display: flex; flex-wrap: wrap; gap: 12px; }
-.fine { color: var(--ink-faint); font-size: 15px; margin: 18px 0 0; }
+.fine { color: var(--ink-faint); font-size: 15px; margin: 14px 0 0; }
+.quick { display: flex; align-items: center; gap: 10px; margin-top: 22px; max-width: 560px; background: var(--code-bg); color: var(--code-ink); border-radius: 12px; padding: 10px 10px 10px 16px; }
+.quick .prompt { color: #8f887b; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.quick code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font-size: 15px; }
+.quick .copy { position: static; flex: none; }
 .hero-art { position: relative; display: grid; place-items: center; }
 .mascot { width: min(300px, 70vw); height: auto; filter: drop-shadow(0 20px 30px rgba(60, 35, 15, 0.25)); animation: wobble 4s ease-in-out infinite; transform-origin: 50% 90%; }
 @keyframes wobble { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg) translateY(-4px); } }

@@ -34,7 +34,7 @@ export function movement(prev, score) {
 
 export function commentBody({ key, score, summary, sha }) {
   const foot = `<sub>Updated on every push${sha ? ` · last scan at ${String(sha).slice(0, 7)}` : ""} · ` +
-    `[What is Diarea?](https://kriszwart.github.io/diarea/)</sub>`;
+    `[What is Diarea?](https://diarea.tools/)</sub>`;
   return `${markerFor(key, score)}\n${summary}\n${foot}\n`;
 }
 

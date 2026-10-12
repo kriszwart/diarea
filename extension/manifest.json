@@ -3,7 +3,7 @@
   "name": "Diarea",
   "version": "0.3.0",
   "description": "Finds what your frontend leaks: keys, source maps, API maps and AI prompts, scored Sealed to Gushing. Local only.",
-  "homepage_url": "https://kriszwart.github.io/diarea/",
+  "homepage_url": "https://diarea.tools/",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",

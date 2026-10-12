@@ -52,7 +52,7 @@ Also available as a CLI (npx diarea scan) and a GitHub Action that fails the bui
 |---|---|
 | Category | Developer Tools |
 | Language | English (United Kingdom) |
-| Homepage URL | https://kriszwart.github.io/diarea/ |
+| Homepage URL | https://diarea.tools/ |
 | Support URL | https://github.com/kriszwart/diarea/issues |
 
 **Graphics**
@@ -89,7 +89,7 @@ Diarea scans the web page in the current tab for information its frontend expose
 - I do not use or transfer user data for purposes that are unrelated to my item's single purpose.
 - I do not use or transfer user data to determine creditworthiness or for lending purposes.
 
-**Privacy policy URL**: https://kriszwart.github.io/diarea/privacy.html
+**Privacy policy URL**: https://diarea.tools/privacy.html
 
 ## Distribution
 
