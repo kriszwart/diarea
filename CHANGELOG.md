@@ -5,7 +5,7 @@ All notable changes to Diarea. Versions follow [semantic versioning](https://sem
 ## 0.3.0
 
 - **Leak Score on pull requests.** The GitHub Action posts the score as one comment and updates it on every push, with how it moved since the last one. New inputs `comment` (on by default), `comment-key` and `github-token`; the job needs `pull-requests: write`. It never fails the build: forked pull requests get a warning instead.
-- **Ready for npm** as `diarea`, so `npx diarea scan` works without cloning. The package holds only the CLI and engine (8 files, about 17 kB); Playwright stays optional for live scans.
+- **Ready for npm** as `diarea`, so `npx diarea scan` works without cloning. The package holds only the CLI and engine (9 files, about 18 kB); Playwright stays optional for live scans.
 
 ## 0.2.0
 
