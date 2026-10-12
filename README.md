@@ -126,7 +126,7 @@ Gate your builds on the Leak Score. Scan your built HTML (no browser needed) or 
 
 The step fails when the CLI would (score at or over `fail-on`, or a critical finding with `strict`) and writes the score and findings to the job summary. Leave `fail-on` empty to report without failing.
 
-`@v0` follows the latest 0.x release. Pin to `@v0.1.0` (or a commit SHA) for a fixed version.
+`@v0` follows the latest 0.x release. Pin to `@v0.2.0` (or a commit SHA) for a fixed version.
 
 | Input | Default | |
 |---|---|---|

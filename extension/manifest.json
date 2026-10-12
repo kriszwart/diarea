@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Diarea",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "See what is leaking out of your frontend before anyone reverse-engineers it. A local-only exposure scanner.",
   "action": {
     "default_popup": "popup.html",

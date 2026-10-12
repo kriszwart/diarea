@@ -1,6 +1,6 @@
 {
   "name": "diarea",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "See what an agent could reverse-engineer from your frontend. A local, read-only leak scanner. The defensive counterpart to REA.",
   "type": "module",
   "bin": {
