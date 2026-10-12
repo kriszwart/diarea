@@ -1,0 +1,94 @@
+name: "Diarea leak scan"
+description: "💩 Scan your own frontend for leaks (keys, source maps, API maps, debug globals) and fail the build above a leak score."
+author: "Kris Zwart"
+branding:
+  icon: "shield"
+  color: "orange"
+
+inputs:
+  target:
+    description: "What to scan: a built HTML file (static, no browser) or an https:// URL you own (live, installs Chromium)."
+    required: true
+  fail-on:
+    description: "Fail the step when the leak score is this or more (0 to 100). Leave empty to report without failing on score."
+    required: false
+    default: "40"
+  strict:
+    description: "Also fail on any critical finding, whatever the score."
+    required: false
+    default: "false"
+  timeout:
+    description: "Navigation timeout for live scans, in milliseconds."
+    required: false
+    default: "30000"
+  node-version:
+    description: "Node version to run Diarea on (20 or later)."
+    required: false
+    default: "20"
+
+outputs:
+  score:
+    description: "Leak score, 0 to 100."
+    value: ${{ steps.report.outputs.score }}
+  band:
+    description: "Score band: Sealed, Seeping, Leaking or Gushing."
+    value: ${{ steps.report.outputs.band }}
+  critical:
+    description: "Number of critical findings."
+    value: ${{ steps.report.outputs.critical }}
+  report:
+    description: "Path to the full JSON report."
+    value: ${{ steps.scan.outputs.report }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    # Inputs reach the shell through env, never by direct interpolation, so a
+    # crafted value cannot inject commands.
+    - name: Install Diarea
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        TARGET: ${{ inputs.target }}
+      run: |
+        if [[ "$TARGET" =~ ^https?:// ]]; then
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+        else
+          npm ci --no-audit --no-fund --omit=optional
+        fi
+
+    - name: Scan
+      id: scan
+      shell: bash
+      env:
+        TARGET: ${{ inputs.target }}
+        FAIL_ON: ${{ inputs.fail-on }}
+        STRICT: ${{ inputs.strict }}
+        TIMEOUT: ${{ inputs.timeout }}
+        DIAREA: ${{ github.action_path }}/bin/diarea.js
+        REPORT: ${{ runner.temp }}/diarea-report.json
+      run: |
+        args=(scan "$TARGET" --json --timeout "$TIMEOUT")
+        [[ -n "$FAIL_ON" ]] && args+=(--fail-on "$FAIL_ON")
+        [[ "$STRICT" == "true" ]] && args+=(--strict)
+        set +e
+        node "$DIAREA" "${args[@]}" > "$REPORT"
+        code=$?
+        set -e
+        echo "report=$REPORT" >> "$GITHUB_OUTPUT"
+        echo "code=$code" >> "$GITHUB_OUTPUT"
+
+    - name: Report
+      id: report
+      shell: bash
+      env:
+        REPORT: ${{ steps.scan.outputs.report }}
+        CODE: ${{ steps.scan.outputs.code }}
+        FAIL_ON: ${{ inputs.fail-on }}
+        STRICT: ${{ inputs.strict }}
+      run: node "${{ github.action_path }}/scripts/action-report.js"

@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci --no-audit --no-fund --omit=optional
+      - run: npm test
+
+  # Runs this repo's own action against the fixtures, so a change that breaks
+  # the gate is caught before anyone else's build depends on it.
+  action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clean page passes
+        id: clean
+        uses: ./
+        with:
+          target: test/fixtures/clean.html
+          fail-on: "1"
+
+      - name: Leaky page fails the gate
+        id: leaky
+        continue-on-error: true
+        uses: ./
+        with:
+          target: test/fixtures/leaky.html
+          fail-on: "40"
+
+      - name: Check outcomes
+        env:
+          CLEAN_SCORE: ${{ steps.clean.outputs.score }}
+          LEAKY_OUTCOME: ${{ steps.leaky.outcome }}
+          LEAKY_SCORE: ${{ steps.leaky.outputs.score }}
+        run: |
+          echo "clean: $CLEAN_SCORE, leaky: $LEAKY_SCORE ($LEAKY_OUTCOME)"
+          [[ "$CLEAN_SCORE" == "0" ]]
+          [[ "$LEAKY_OUTCOME" == "failure" ]]
+          [[ "$LEAKY_SCORE" -ge 40 ]]

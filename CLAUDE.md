@@ -19,6 +19,7 @@ First real target: revoluAItion (revoluaition.com), a client-rendered app, so th
 - `src/collect-static.js` collects page evidence with jsdom (no browser, safe on untrusted markup, good for CI and build output). Never execute page scripts in this path.
 - `src/collect-live.js` collects with Playwright (real page load: globals, fetched bundles, network map).
 - `bin/diarea.js` is the CLI entry point.
+- `action.yml` is the GitHub Action: it runs the CLI with `--json` and `scripts/action-report.js` turns the report into outputs, a job summary and the CLI's exit code.
 - `extension/` holds the Chrome extension. It should consume `src/checks.js` via a small build step, not an inline copy.
 - `test/fixtures/` holds deliberately leaky and clean pages. `npm test` must run without a browser.
 
@@ -48,6 +49,7 @@ node bin/diarea.js scan ./dist/index.html --json
 
 - [x] Port the CLI, engine and tests into this repo
 - [x] Point the extension at `src/checks.js` (one source of truth)
-- [ ] GitHub Action (`action.yml`) wrapping `--fail-on`
+- [x] GitHub Action (`action.yml`) wrapping `--fail-on`
+- [ ] Post the score as a PR comment from the Action
 - [ ] Publish to npm as `diarea`
 - [ ] Live API watcher

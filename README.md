@@ -11,7 +11,7 @@
 ![local only](https://img.shields.io/badge/data-stays_local-38c884?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-ededea?style=flat-square)
 
-[What it finds](#what-it-finds) · [Install](#install-load-unpacked) · [The honest bit](#the-honest-bit) · [Containment Score](#the-containment-score) · [Roadmap](#roadmap)
+[What it finds](#what-it-finds) · [Install](#install-load-unpacked) · [The honest bit](#the-honest-bit) · [GitHub Action](#github-action) · [Containment Score](#the-containment-score) · [Roadmap](#roadmap)
 
 </div>
 
@@ -80,6 +80,32 @@ npx playwright install chromium
 
 Options: `--json`, `--fail-on <score>`, `--strict` (exit 1 on any critical finding), `--timeout <ms>`, `--no-color`. Exit codes make it a drop-in CI check: `0` clean or under your threshold, `1` when the score reaches `--fail-on` (or any critical finding with `--strict`), `2` on error.
 
+## GitHub Action
+
+Gate your builds on the Leak Score. Scan your built HTML (no browser needed) or a deployed preview URL you own:
+
+```yaml
+- uses: actions/checkout@v4
+- run: npm ci && npm run build
+- uses: kriszwart/diarea@main
+  with:
+    target: dist/index.html   # or https://your-preview.example.com
+    fail-on: 40               # fail at a score of 40 or more
+    strict: true              # also fail on any critical finding
+```
+
+The step fails when the CLI would (score at or over `fail-on`, or a critical finding with `strict`) and writes the score and findings to the job summary. Leave `fail-on` empty to report without failing.
+
+| Input | Default | |
+|---|---|---|
+| `target` | required | A built `.html` file (static) or an `https://` URL (live, installs Chromium) |
+| `fail-on` | `40` | Fail at this score or more |
+| `strict` | `false` | Fail on any critical finding |
+| `timeout` | `30000` | Live scan timeout in ms |
+| `node-version` | `20` | Node to run on |
+
+Outputs: `score`, `band`, `critical` and `report` (path to the JSON report).
+
 ## Privacy
 
 Everything stays in your browser. Diarea makes no outbound requests of its own, reads only the page you are on, and stores nothing. Permissions are the minimum: `activeTab` (the current tab, only when you click) and `scripting` (to run the scan). Same-origin scripts are read in full; cross-origin bundles are listed but not fetched, exactly as the browser would allow anyone.
@@ -117,7 +143,7 @@ Diarea is the defensive agent. The plan is to let it fight everywhere your code 
 
 - **v0 (done)** Chrome extension. Scan your own page, get the score.
 - **v1 (done)** CLI: `npx diarea scan <url|file>`, static and live modes, shared engine.
-- **v2 (in progress)** CI gate. The `--fail-on` and `--strict` flags are the hook; a GitHub Action wrapper is next.
+- **v2 (in progress)** CI gate. The GitHub Action wraps `--fail-on` and `--strict` and writes a job summary; posting the score as a PR comment is next.
 - **v3** Watcher: spot agent-style probing hitting your API live.
 
 ## Contributing
