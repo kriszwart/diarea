@@ -22,9 +22,9 @@ First real target: revoluAItion (revoluaition.com), a client-rendered app, so th
 - `extension/` holds the Chrome extension. It should consume `src/checks.js` via a small build step, not an inline copy.
 - `test/fixtures/` holds deliberately leaky and clean pages. `npm test` must run without a browser.
 
-## Checks (current seven)
+## Checks (current eight)
 
-Seven checks covering things like exposed keys, source maps, API/GraphQL endpoint maps (including a bare `/graphql`) and debug globals; see `src/checks.js` for the authoritative list. The report rolls findings into a 0 to 100 score with tiered labels (top tier is "Gushing"). A leaky fixture should score high; a clean page should score 0.
+Eight checks covering things like exposed keys, source maps, un-minified or commented bundles, API/GraphQL endpoint maps (including a bare `/graphql`) and debug globals; see `src/checks.js` for the authoritative list. The report rolls findings into a 0 to 100 score with tiered labels (top tier is "Gushing"). A leaky fixture should score high; a clean page should score 0.
 
 ## Conventions
 
