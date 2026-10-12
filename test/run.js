@@ -60,6 +60,21 @@ check(Object.values(FAKE_SECRETS).every((v) => !report.includes(v.slice(0, 12)))
 const clean = analyse(collectStatic(fixture("clean.html"), "file:///clean.html"));
 check(scoreOf(clean.findings) === 0, "clean fixture scores 0");
 
+console.log("Static file scans:");
+const demoDir = path.join(here, "..", "site", "demo");
+const demo = analyse(collectStatic(fs.readFileSync(path.join(demoDir, "index.html"), "utf8"),
+  "file:///demo/index.html", { root: demoDir }));
+const demoMissing = expected.filter(([, re]) => !demo.findings.some((f) => re.test(f.title))).map(([n]) => n);
+check(demoMissing.length === 0, "demo site fires all eight checks" + (demoMissing.length ? ` (missing: ${demoMissing.join(", ")})` : ""));
+check(bandOf(scoreOf(demo.findings)).label === "Gushing", "demo site scores Gushing");
+
+const escape = collectStatic(
+  '<script src="../run.js"></script><script src="/../../package.json"></script>' +
+  '<script src="%2e%2e/run.js"></script><script src="https://example.invalid/x.js"></script>' +
+  '<script src="//example.invalid/y.js"></script>',
+  "file:///fixtures/index.html", { root: path.join(here, "fixtures") });
+check(escape.bundles.length === 0, "never reads scripts outside the scanned folder or over the network");
+
 console.log("Extension:");
 const popup = fs.readFileSync(path.join(here, "..", "extension", "popup.js"), "utf8");
 check(/from "\.\/lib\/checks\.js"/.test(popup), "popup imports the shared engine");

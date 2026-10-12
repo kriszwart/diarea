@@ -57,7 +57,7 @@ export function analyse(input = {}) {
   const js = i.inlineScripts.concat(i.bundles.map((b) => b.body || "")).join("\n");
   const html = i.html || "";
   const haystack = js + "\n" + html;
-  const pathOf = (u) => { try { return new URL(u, i.origin || "http://x/").pathname; } catch { return u; } };
+  const pathOf = (u) => { try { return new URL(u, i.url || i.origin || "http://x/").pathname; } catch { return u; } };
 
   // 1. Source maps in production
   const mapRefs = uniq((js.match(/sourceMappingURL=([^\s'"]+)/g) || [])

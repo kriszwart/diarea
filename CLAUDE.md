@@ -16,12 +16,14 @@ First real target: revoluAItion (revoluaition.com), a client-rendered app, so th
 ## Architecture
 
 - `src/checks.js` is the single canonical detection engine. Every rule lives here and only here. The CLI and the extension both import it; never duplicate rules elsewhere.
-- `src/collect-static.js` collects page evidence with jsdom (no browser, safe on untrusted markup, good for CI and build output). Never execute page scripts in this path.
+- `src/collect-static.js` collects page evidence with jsdom (no browser, safe on untrusted markup, good for CI and build output). When scanning a file it also reads that page's local `<script src>` files and sibling `.map` files, only inside the file's own folder. Never execute page scripts or fetch anything in this path.
 - `src/collect-live.js` collects with Playwright (real page load: globals, fetched bundles, network map).
 - `bin/diarea.js` is the CLI entry point.
 - `action.yml` is the GitHub Action: it runs the CLI with `--json` and `scripts/action-report.js` turns the report into outputs, a job summary and the CLI's exit code.
 - `extension/` holds the Chrome extension. It should consume `src/checks.js` via a small build step, not an inline copy.
-- `test/fixtures/` holds deliberately leaky and clean pages. `npm test` must run without a browser.
+- `test/fixtures/` holds deliberately leaky and clean pages. `npm test` must run without a browser. Fake secrets are assembled in the test, never stored as credential-shaped strings (GitHub push protection blocks them).
+- `site/` is published to GitHub Pages. `site/demo/` is Colander AI, a fake startup that leaks on purpose (all eight checks must fire on it; the tests enforce this). It is the only thing the docs and landing page ever scan.
+- `docs/assets/scan.svg` is rendered from real CLI output by `scripts/render-terminal-svg.js`; `social-preview.png` is a screenshot of `social-preview.html`.
 
 ## Checks (current eight)
 

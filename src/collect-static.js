@@ -3,10 +3,48 @@
  * --html / file / stdin mode and runs anywhere Node runs, no browser needed.
  *
  * Scripts are never executed, so this is safe to point at untrusted markup.
- * It will not see data that only appears after client-side rendering; for a
- * full single-page app, use the live (Playwright) collector instead.
+ * When given a root directory (scanning a file such as dist/index.html), it
+ * also reads the page's local <script src> files and checks for sibling .map
+ * files, so build output is judged on what it actually ships. It only reads
+ * inside that directory. It will not see data that only appears after
+ * client-side rendering; for a full single-page app, use the live collector.
  */
+import fs from "node:fs";
+import path from "node:path";
 import { JSDOM } from "jsdom";
+
+const MAX_BUNDLES = 16;
+const MAX_BUNDLE_BYTES = 5 * 1024 * 1024;
+
+// Resolve a script src to a file inside root, or null. Remote and
+// protocol-relative scripts are skipped; nothing leaves the machine.
+function localScriptPath(src, root) {
+  if (/^[a-z][a-z0-9+.-]*:|^\/\//i.test(src)) return null;
+  const clean = decodeURIComponent(src.split(/[?#]/)[0]);
+  const file = path.resolve(root, "." + path.posix.join("/", clean));
+  const rel = path.relative(root, file);
+  if (rel.startsWith("..") || path.isAbsolute(rel)) return null;
+  return file;
+}
+
+function readLocalBundles(scripts, root) {
+  const bundles = [];
+  const seen = new Set();
+  let liveMapFound = false;
+  for (const el of scripts) {
+    if (bundles.length >= MAX_BUNDLES) break;
+    const src = el.getAttribute("src");
+    const file = src && localScriptPath(src, root);
+    if (!file || seen.has(file)) continue;
+    seen.add(file);
+    try {
+      if (fs.statSync(file).size > MAX_BUNDLE_BYTES) continue;
+      bundles.push({ url: "/" + path.relative(root, file).split(path.sep).join("/"), body: fs.readFileSync(file, "utf8") });
+      if (fs.existsSync(file + ".map")) liveMapFound = true;
+    } catch { /* missing or unreadable; skip */ }
+  }
+  return { bundles, liveMapFound };
+}
 
 const GLOBAL_MARKERS = [
   ["__NEXT_DATA__", /__NEXT_DATA__/],
@@ -18,7 +56,7 @@ const GLOBAL_MARKERS = [
   ["__sveltekit", /__sveltekit/],
 ];
 
-export function collectStatic(html, baseUrl = "http://localhost/") {
+export function collectStatic(html, baseUrl = "http://localhost/", opts = {}) {
   const dom = new JSDOM(html, { url: baseUrl }); // runScripts omitted = no execution
   const doc = dom.window.document;
   const serialised = dom.serialize();
@@ -64,18 +102,21 @@ export function collectStatic(html, baseUrl = "http://localhost/") {
   if (/__sveltekit/.test(serialised)) frameworks.push("Svelte");
   if (/jquery(\.min)?\.js/i.test(serialised)) frameworks.push("jQuery");
 
+  const local = opts.root ? readLocalBundles(scripts.filter((s) => s.src), path.resolve(opts.root))
+    : { bundles: [], liveMapFound: false };
+
   let origin = "", host = "";
   try { const u = new URL(baseUrl); origin = u.origin; host = u.host; } catch {}
 
   return {
     url: baseUrl, host, origin,
     inlineScripts,
-    bundles: [], // static mode does not fetch external bundles
+    bundles: local.bundles, // local files only, never fetched over the network
     html: serialised,
     globals,
     biggestStateBytes,
     biggestJsonBytes,
-    liveMapFound: false,
+    liveMapFound: local.liveMapFound,
     hiddenFields,
     dataAttrs,
     frameworks,

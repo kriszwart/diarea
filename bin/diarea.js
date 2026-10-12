@@ -3,6 +3,7 @@
  * Local and read-only. Usage: diarea scan <url|file> [options]
  */
 import fs from "node:fs";
+import path from "node:path";
 import { analyse, scoreOf, bandOf, SEV_ORDER } from "../src/checks.js";
 import { collectStatic } from "../src/collect-static.js";
 
@@ -130,7 +131,8 @@ async function main() {
         html = fs.readFileSync(target, "utf8");
         base = "file://" + target;
       }
-      input = collectStatic(html, base);
+      // For a file, also read its local scripts (inside its own folder only).
+      input = collectStatic(html, base, target === "-" ? {} : { root: path.dirname(path.resolve(target)) });
       input.host = target === "-" ? "stdin" : target;
     }
   } catch (err) {
