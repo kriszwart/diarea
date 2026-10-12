@@ -73,6 +73,20 @@ check(secretTitles('const a = "task-item-description-text-and-more"; const b = "
 const realShaped = "sk-" + "Ab3dE5gH7jK9mN1pQ3sT5vX7zA9cE1gI3kM5oQ7sU9wY1aC";
 check(secretTitles(`const k = "${realShaped}";`).length === 1, "a real-shaped key is still caught");
 
+// Regression from the second real scan: a public anon JWT, a property name
+// ("access_token") and minified code were all reported as secrets.
+const b64url = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+const jwtWith = (claims) => "eyJ" + "hbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9." + b64url(claims) + ".SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+const findingsFor = (js) => analyse({ inlineScripts: [js] }).findings;
+const anon = findingsFor(`const k = "${jwtWith({ iss: "supabase", role: "anon" })}";`);
+check(anon.length === 1 && anon[0].sev === "info" && /anon key/.test(anon[0].title) && !anon[0].evidence.join("").includes("supabase"),
+  "a public anon JWT is a minor note, and its claims are not printed");
+const service = findingsFor(`const k = "${jwtWith({ role: "service_role" })}";`);
+check(service.length === 1 && service[0].sev === "crit" && /Service-role/.test(service[0].evidence[0]),
+  "a service-role JWT is critical");
+check(secretTitles('a.token = "access_token"; b.token = "",g)).x = 1; d = { secret: "client_secret" };').length === 0,
+  "property names and minified code are not secrets");
+
 console.log("Static file scans:");
 const demoDir = path.join(here, "..", "site", "demo");
 const demo = analyse(collectStatic(fs.readFileSync(path.join(demoDir, "index.html"), "utf8"),

@@ -2,9 +2,11 @@
 
 All notable changes to Diarea. Versions follow [semantic versioning](https://semver.org/); while it is 0.x, a minor bump can add checks that change scores.
 
-## Unreleased
+## 0.3.1
 
 - **Fewer false alarms on secrets** (from the first real scan, of revoluaition.com). Words ending in `sk-`, such as `task-item-...` or `mask-image-...`, were reported as OpenAI keys. Key patterns now have to start a token, and OpenAI, Stripe and GitHub keys have to look random (32 or more characters mixing digits and both cases).
+- **JWTs are judged by their role**, read locally from the token (only the role is ever shown). A Supabase-style `anon` key is public by design, so it is now a minor note reminding you to check row level security; a `service_role` key is critical.
+- **Property names and minified code are no longer "hard-coded tokens"**, for example `token: "access_token"` or code caught between two unrelated quotes.
 - **Live scans count only API traffic** (fetch, XHR, websockets) towards the endpoint map, not the page's own scripts, styles, fonts and images.
 - **Chrome Web Store kit.** Extension icons from the mascot, a manifest with icons and a homepage, `npm run package:extension` for the upload zip, a privacy policy page on the site, and `docs/store/` with the listing copy, permission justifications, three screenshots of the real popup and both promo tiles.
 

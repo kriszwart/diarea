@@ -24,6 +24,15 @@ const uniq = (a) => Array.from(new Set(a));
 // Never print a found secret: show a short prefix and its length only.
 export const redact = (s) => { s = String(s); return s.slice(0, 4) + "... (" + s.length + " chars)"; };
 
+// The "role" claim of a JWT, decoded locally, or "" if unreadable.
+function jwtRole(token) {
+  try {
+    const part = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const json = JSON.parse(atob(part + "=".repeat((4 - (part.length % 4)) % 4)));
+    return typeof json.role === "string" ? json.role : "";
+  } catch { return ""; }
+}
+
 /**
  * @param {object} input
  *   url, host, origin        - strings
@@ -81,13 +90,21 @@ export function analyse(input = {}) {
     { re: new RegExp(B + "AIza[0-9A-Za-z_-]{35}", "g"), label: "Google API key", sev: "warn" },
     { re: new RegExp(B + "xox[baprs]-[0-9A-Za-z-]{10,}", "g"), label: "Slack token", sev: "crit" },
     { re: new RegExp(B + "gh[pousr]_[A-Za-z0-9]{30,}", "g"), label: "GitHub token", sev: "crit", random: true },
-    { re: new RegExp(B + "eyJ[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{6,}", "g"), label: "JWT / bearer token", sev: "warn" },
+    { re: new RegExp(B + "eyJ[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{6,}", "g"), label: "JWT / bearer token", sev: "warn", jwt: true },
     { re: new RegExp(B + "sk_test_[0-9a-zA-Z]{16,}", "g"), label: "Stripe test secret key", sev: "warn", random: true },
   ];
   const secretHits = [];
+  const anonKeys = [];
   for (const rule of secretRules) {
     for (const h of uniq(haystack.match(rule.re) || [])) {
       if (rule.random && !looksRandom(h.replace(/^(sk_live_|sk_test_|sk-(?:proj-|svcacct-|admin-)?|gh[pousr]_)/, ""))) continue;
+      if (rule.jwt) {
+        // Read only the role claim, locally. Public "anon" keys (Supabase and
+        // similar) are meant for the browser; a "service_role" key never is.
+        const role = jwtRole(h);
+        if (role === "anon") { anonKeys.push(h); continue; }
+        if (role === "service_role") { secretHits.push({ sev: "crit", label: "Service-role JWT (full database access)", value: h }); continue; }
+      }
       secretHits.push({ sev: rule.sev, label: rule.label, value: h });
     }
   }
@@ -97,6 +114,10 @@ export function analyse(input = {}) {
   while ((am = assignRe.exec(js)) !== null) {
     const key = am[1], val = am[2];
     if (/process\.env|import\.meta|YOUR_|xxxx|changeme|example|placeholder|\$\{|<%/.test(val)) continue;
+    // Not secrets: names (token: "access_token") and minified code caught
+    // between two unrelated quotes (token="",g))...).
+    if (/^[A-Za-z_$][A-Za-z_$.-]*$/.test(val)) continue;
+    if (/[\s(){}\[\];,<>|&+!?]/.test(val)) continue;
     if (val.length > 120) continue;
     const sig = key.toLowerCase() + ":" + val.slice(0, 6);
     if (seen.has(sig)) continue;
@@ -110,6 +131,13 @@ export function analyse(input = {}) {
       "Credentials in shipped JavaScript or markup are readable by anyone, no tooling required. Publishable keys (pk_) are fine. Secret keys and tokens are not.",
       "Move secret keys behind your server. The browser should only ever hold publishable keys.",
       secretHits.slice(0, 5).map((s) => s.label + ": " + redact(s.value)));
+  }
+
+  if (anonKeys.length) {
+    add("info", "Public anon key in the page",
+      "A Supabase-style anon key (a JWT with role \"anon\") is in the client. That is normal, but it lets anyone call your database directly, so it is only safe while row level security guards every table.",
+      "Check row level security is on for every table and that each policy is as strict as the UI. Never ship the service_role key.",
+      anonKeys.slice(0, 2).map((k) => "role \"anon\": " + redact(k)));
   }
 
   // 3. Proprietary logic shipped to the client
