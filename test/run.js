@@ -1,5 +1,6 @@
-/* Browser-free test: run the shared engine over the leaky fixture and assert
- * every check fires. No Playwright, no network. `npm test`.
+/* Browser-free test: run the shared engine over the leaky and clean fixtures,
+ * check secrets are redacted, and check the extension uses the shared engine
+ * rather than a copy of the rules. No Playwright, no network. `npm test`.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -16,7 +17,8 @@ const FAKE_SECRETS = {
   __FAKE_GOOGLE_KEY__: "AI" + "za" + "SyA1234567890abcdefghijklmnopqrstuvw",
 };
 const plant = (s) => s.replace(/__FAKE_[A-Z_]+__/g, (m) => FAKE_SECRETS[m] || m);
-const html = plant(fs.readFileSync(path.join(here, "fixtures", "leaky.html"), "utf8"));
+const fixture = (name) => fs.readFileSync(path.join(here, "fixtures", name), "utf8");
+const html = plant(fixture("leaky.html"));
 
 const input = collectStatic(html, "file:///leaky.html");
 const result = analyse(input);
@@ -44,8 +46,23 @@ for (const [name, re] of expected) {
 
 if (score <= 0) { console.log("  FAIL  score should be above zero"); failed++; }
 
+const check = (ok, name) => { console.log(`  ${ok ? "PASS" : "FAIL"}  ${name}`); if (!ok) failed++; };
+
+console.log("Safety:");
+const report = JSON.stringify(result);
+check(Object.values(FAKE_SECRETS).every((v) => !report.includes(v.slice(0, 12))),
+  "secret values are redacted in the report");
+
+const clean = analyse(collectStatic(fixture("clean.html"), "file:///clean.html"));
+check(scoreOf(clean.findings) === 0, "clean fixture scores 0");
+
+console.log("Extension:");
+const popup = fs.readFileSync(path.join(here, "..", "extension", "popup.js"), "utf8");
+check(/from "\.\/lib\/checks\.js"/.test(popup), "popup imports the shared engine");
+check(!/sk_live_|sourceMappingURL=|function analyse/.test(popup), "popup holds no copy of the rules");
+
 console.log(failed === 0
-  ? `\nAll ${expected.length} checks fired. Engine is working.\n`
-  : `\n${failed} check(s) did not fire.\n`);
+  ? `\nAll ${expected.length} checks fired and every guard passed. Engine is working.\n`
+  : `\n${failed} test(s) failed.\n`);
 
 process.exit(failed === 0 ? 0 : 1);

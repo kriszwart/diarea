@@ -19,7 +19,7 @@ Usage:
 
 Options:
   --json             Output the report as JSON
-  --fail-on <n>      Exit 1 if the leak score is above n (for CI)
+  --fail-on <n>      Exit 1 if the leak score is n or more (for CI)
   --strict           Exit 1 if any critical finding is present
   --timeout <ms>     Navigation timeout for live scans (default 30000)
   --no-color         Disable colour
@@ -148,7 +148,7 @@ async function main() {
   }
 
   const hasCrit = result.findings.some((f) => f.sev === "crit");
-  if (o.failOn != null && !Number.isNaN(o.failOn) && score > o.failOn) return 1;
+  if (o.failOn != null && !Number.isNaN(o.failOn) && score >= o.failOn) return 1;
   if (o.strict && hasCrit) return 1;
   return 0;
 }

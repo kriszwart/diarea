@@ -46,8 +46,8 @@ node bin/diarea.js scan ./dist/index.html --json
 
 ## Roadmap
 
-- [ ] Port the CLI, engine and tests into this repo
-- [ ] Point the extension at `src/checks.js` (one source of truth)
+- [x] Port the CLI, engine and tests into this repo
+- [x] Point the extension at `src/checks.js` (one source of truth)
 - [ ] GitHub Action (`action.yml`) wrapping `--fail-on`
 - [ ] Publish to npm as `diarea`
 - [ ] Live API watcher

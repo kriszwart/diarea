@@ -21,7 +21,8 @@ export const BANDS = [
 export const SEV_ORDER = { crit: 0, warn: 1, info: 2 };
 
 const uniq = (a) => Array.from(new Set(a));
-const clip = (s, n) => (String(s).length > n ? String(s).slice(0, n) + "..." : String(s));
+// Never print a found secret: show a short prefix and its length only.
+export const redact = (s) => { s = String(s); return s.slice(0, 4) + "... (" + s.length + " chars)"; };
 
 /**
  * @param {object} input
@@ -103,7 +104,7 @@ export function analyse(input = {}) {
       secretHits.length + " possible secret" + (secretHits.length > 1 ? "s" : "") + " in client code",
       "Credentials in shipped JavaScript or markup are readable by anyone, no tooling required. Publishable keys (pk_) are fine. Secret keys and tokens are not.",
       "Move secret keys behind your server. The browser should only ever hold publishable keys.",
-      secretHits.slice(0, 5).map((s) => s.label + ": " + clip(s.value, 38)));
+      secretHits.slice(0, 5).map((s) => s.label + ": " + redact(s.value)));
   }
 
   // 3. Proprietary logic shipped to the client

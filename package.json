@@ -13,8 +13,9 @@
     "LICENSE"
   ],
   "scripts": {
+    "build:extension": "node scripts/build-extension.js",
     "scan": "node bin/diarea.js scan",
-    "test": "node tests/run.js"
+    "test": "node test/run.js"
   },
   "keywords": [
     "reverse-engineering",
@@ -26,7 +27,7 @@
     "cli"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "license": "MIT",
   "dependencies": {

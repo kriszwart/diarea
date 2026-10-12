@@ -6,19 +6,25 @@ Thanks for helping seal the leaks. This is a small, honest project and contribut
 
 **Detection rules.** The core idea is simple: if an agent can read it from the frontend, Diarea should flag it. New or sharper checks are the highest-value contribution.
 
-A check lives inside `scanPage()` in `popup.js` and calls `add(sev, title, detail, fix, evidence)`:
+Every check lives in `analyse()` in `src/checks.js`, the one detection engine shared by the CLI and the extension. Never copy a rule anywhere else. A check calls `add(sev, title, detail, fix, evidence)`:
 
 - `sev` is `"crit"`, `"warn"` or `"info"`.
 - `title` is the short headline shown in the report.
 - `detail` is one or two sentences on what a reader sees.
 - `fix` is the one-line "flush it" instruction.
-- `evidence` is a short array of concrete strings found on the page.
+- `evidence` is a short array of concrete strings found on the page. Pass secret values through `redact()` so only a prefix and length are shown.
 
 Keep checks local and read-only. The scanner must never send anything off the machine, and must never modify the page.
 
 ## Running it
 
-There is no build step. Load the folder unpacked at `chrome://extensions` with Developer mode on, then reload the extension after edits.
+```
+npm install
+npm test                    # no browser needed
+npm run build:extension     # copies src/checks.js into extension/lib/
+```
+
+Load `extension/` unpacked at `chrome://extensions` with Developer mode on. After editing `src/checks.js`, rebuild and reload the extension. If a check needs new evidence, collect it in `src/collect-static.js`, `src/collect-live.js` and `collectPage()` in `extension/popup.js`. Add a case to `test/fixtures/` so it can be verified.
 
 ## Ground rules
 

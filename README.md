@@ -1,10 +1,10 @@
 <div align="center">
 
-# 💧 Diarea
+# 💩 Diarea
 
 ### The frontend leak scanner. Agent versus agent.
 
-**An AI agent can now read your frontend and rebuild your product. Diarea is the agent that makes sure there is nothing left worth taking.**
+**An AI agent can now read your frontend and rebuild your product. Diarea finds what your frontend leaks (exposed keys, source maps, API maps and debug globals) so there is nothing left worth taking. Chrome extension and CLI.**
 
 ![status](https://img.shields.io/badge/status-prototype-f5a623?style=flat-square)
 ![platform](https://img.shields.io/badge/Chrome-MV3-e0218a?style=flat-square)
@@ -44,17 +44,17 @@ Plus hidden fields that carry meaning and a stack fingerprint. Each finding come
 
 ## Install (load unpacked)
 
-1. Download or clone this repo.
+1. Clone this repo and run `npm install && npm run build:extension`. The build copies the shared engine (`src/checks.js`) into `extension/lib/`.
 2. Open `chrome://extensions` in Chrome or Edge.
 3. Turn on **Developer mode** (top right).
-4. Click **Load unpacked** and select the repo folder.
+4. Click **Load unpacked** and select the `extension/` folder.
 5. Pin the icon, open one of your own deployed sites, and click it.
 
 It auto-scans on open. Use **Re-scan** after a deploy. Point it at your own staging site first and watch the score.
 
 ## CLI
 
-The same detection engine runs headless, so you can scan from your terminal and in CI. The checks live in one shared module (`src/checks.js`); the extension and the CLI both use it.
+The same detection engine runs headless, so you can scan from your terminal and in CI. The checks live in one shared module (`src/checks.js`); the extension and the CLI both use it. Found secret values are never printed, only a short prefix and their length.
 
 ```
 # a saved page or build output, no browser needed
@@ -78,7 +78,7 @@ npm install playwright
 npx playwright install chromium
 ```
 
-Options: `--json`, `--fail-on <score>`, `--strict` (exit 1 on any critical finding), `--timeout <ms>`, `--no-color`. Exit codes make it a drop-in CI check: `0` clean, `1` over your threshold or a critical finding, `2` on error.
+Options: `--json`, `--fail-on <score>`, `--strict` (exit 1 on any critical finding), `--timeout <ms>`, `--no-color`. Exit codes make it a drop-in CI check: `0` clean or under your threshold, `1` when the score reaches `--fail-on` (or any critical finding with `--strict`), `2` on error.
 
 ## Privacy
 
@@ -132,7 +132,7 @@ Diarea is a defensive tool that inspects pages you own and control, to help you 
 
 If this saved you from shipping your logic to the browser, a star helps other people find it.
 
-[![Star History Chart](https://api.star-history.com/svg?repos=your-username/diarea&type=Date)](https://star-history.com/#your-username/diarea&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=kriszwart/diarea&type=Date)](https://star-history.com/#kriszwart/diarea&Date)
 
 ## License
 
