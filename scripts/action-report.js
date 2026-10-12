@@ -1,65 +1,63 @@
-/* Turns the CLI's JSON report into GitHub Action outputs, a job summary and
- * an exit code. Run by action.yml after `diarea scan --json`; the scan's own
- * exit code arrives in CODE so the Action fails exactly when the CLI would.
- * Evidence is already redacted by src/checks.js.
+/* Turns the CLI's JSON report into GitHub Action outputs, a job summary, an
+ * optional pull request comment and an exit code. Run by action.yml after
+ * `diarea scan --json`; the scan's own exit code arrives in CODE so the Action
+ * fails exactly when the CLI would. Evidence is already redacted by
+ * src/checks.js.
  */
 import fs from "node:fs";
-import { SEV_ORDER } from "../src/checks.js";
+import { countsOf, gateText, renderSummary } from "./action-summary.js";
+import { commentBody, keyOf, movement, upsertComment } from "./pr-comment.js";
 
-const { REPORT, CODE = "2", FAIL_ON = "", STRICT = "false", GITHUB_OUTPUT, GITHUB_STEP_SUMMARY } = process.env;
-const code = Number(CODE);
+const env = process.env;
+const exitCode = Number(env.CODE ?? "2");
+const failOn = env.FAIL_ON || "";
+const strict = env.STRICT === "true";
 
 let report = null;
-try { report = JSON.parse(fs.readFileSync(REPORT, "utf8")); } catch {}
+try { report = JSON.parse(fs.readFileSync(env.REPORT, "utf8")); } catch {}
 
-if (!report || code === 2) {
+if (!report || exitCode === 2) {
   console.log("::error title=Diarea::The scan could not run. See the Scan step log for the reason.");
   process.exit(2);
 }
 
-const findings = report.findings || [];
-const counts = { crit: 0, warn: 0, info: 0 };
-for (const f of findings) counts[f.sev] = (counts[f.sev] || 0) + 1;
-
-if (GITHUB_OUTPUT) {
-  fs.appendFileSync(GITHUB_OUTPUT,
-    `score=${report.score}\nband=${report.band}\ncritical=${counts.crit}\n`);
+const counts = countsOf(report.findings);
+if (env.GITHUB_OUTPUT) {
+  fs.appendFileSync(env.GITHUB_OUTPUT, `score=${report.score}\nband=${report.band}\ncritical=${counts.crit}\n`);
 }
 
-const LABEL = { crit: "critical", warn: "exposed", info: "minor" };
-const cell = (s) => String(s).replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
-const code_ = (s) => "`" + String(s).replace(/`/g, "'") + "`";
-
-const lines = [];
-lines.push(`## 💩 Diarea: ${report.score}/100, ${report.band}`);
-lines.push("");
-lines.push(`Scanned ${code_(report.host || report.url || "")} in ${report.mode} mode. ` +
-  `${counts.crit} critical, ${counts.warn} exposed, ${counts.info} minor.`);
-lines.push("");
-if (findings.length) {
-  lines.push("| Severity | Finding | Evidence | Flush it |");
-  lines.push("|---|---|---|---|");
-  for (const f of findings.slice().sort((a, b) => SEV_ORDER[a.sev] - SEV_ORDER[b.sev])) {
-    const ev = (f.evidence || []).slice(0, 3).map(code_).join("<br>");
-    lines.push(`| ${LABEL[f.sev] || f.sev} | ${cell(f.title)} | ${cell(ev)} | ${cell(f.fix)} |`);
-  }
-} else {
-  lines.push("Nothing obvious leaking. Keep the real defences server-side.");
-}
-lines.push("");
-
-const gate = [];
-if (FAIL_ON !== "") gate.push(`fails at ${FAIL_ON} or more`);
-if (STRICT === "true") gate.push("fails on any critical finding");
-lines.push(code === 1
-  ? `**Failed.** This build ${gate.join(" and ")}.`
-  : `Passed${gate.length ? ` (this build ${gate.join(" and ")})` : ""}.`);
-
-const summary = lines.join("\n") + "\n";
-if (GITHUB_STEP_SUMMARY) fs.appendFileSync(GITHUB_STEP_SUMMARY, summary);
+const summary = renderSummary({ report, exitCode, failOn, strict });
+if (env.GITHUB_STEP_SUMMARY) fs.appendFileSync(env.GITHUB_STEP_SUMMARY, summary);
 console.log(summary);
 
-if (code === 1) {
-  console.log(`::error title=Diarea::Leak score ${report.score}/100 (${report.band}). This build ${gate.join(" and ")}.`);
+// Pull request comment: only on pull request events, and never fatal.
+const prEvent = /^pull_request(_target)?$/.test(env.GITHUB_EVENT_NAME || "");
+if (env.COMMENT === "true" && prEvent) {
+  let pr = null, sha = "";
+  try {
+    const event = JSON.parse(fs.readFileSync(env.GITHUB_EVENT_PATH, "utf8"));
+    pr = event.pull_request && event.pull_request.number;
+    sha = (event.pull_request && event.pull_request.head && event.pull_request.head.sha) || "";
+  } catch {}
+  if (!pr || !env.GITHUB_TOKEN) {
+    console.log("::warning title=Diarea::Skipped the pull request comment: no pull request number or token.");
+  } else {
+    const key = keyOf(env.COMMENT_KEY || env.TARGET || "");
+    const res = await upsertComment({
+      api: env.GITHUB_API_URL || "https://api.github.com",
+      repo: env.GITHUB_REPOSITORY, pr, token: env.GITHUB_TOKEN, key,
+      render: (prev) => commentBody({
+        key, score: report.score, sha,
+        summary: renderSummary({ report, exitCode, failOn, strict, headline: movement(prev, report.score) }),
+      }),
+    });
+    if (res.ok) console.log(`Diarea: ${res.action} the Leak Score comment on pull request #${pr}.`);
+    else console.log(`::warning title=Diarea::Could not comment on the pull request (${res.error.message}). ` +
+      "Forked pull requests get a read-only token, and the job needs `pull-requests: write`. The job summary has the full report.");
+  }
 }
-process.exit(code);
+
+if (exitCode === 1) {
+  console.log(`::error title=Diarea::Leak score ${report.score}/100 (${report.band}). This build ${gateText(failOn, strict)}.`);
+}
+process.exit(exitCode);

@@ -20,7 +20,7 @@ First real target: revoluAItion (revoluaition.com), a client-rendered app, so th
 - `src/collect-page.js` is the in-page collector, a self-contained function run inside a real page. The extension (chrome.scripting), the live CLI (`src/collect-live.js`, Playwright) and the landing page (demo iframe) all use it; never write another one.
 - `src/collect-live.js` loads the page with Playwright, runs `collectPage` and adds the network map.
 - `bin/diarea.js` is the CLI entry point.
-- `action.yml` is the GitHub Action: it runs the CLI with `--json` and `scripts/action-report.js` turns the report into outputs, a job summary and the CLI's exit code.
+- `action.yml` is the GitHub Action: it runs the CLI with `--json` and `scripts/action-report.js` turns the report into outputs, a job summary (`scripts/action-summary.js`), a sticky pull request comment (`scripts/pr-comment.js`, updated in place, never fatal) and the CLI's exit code.
 - `extension/` holds the Chrome extension. `npm run build` (`scripts/build.js`) copies `src/checks.js` and `src/collect-page.js` into `extension/lib/` and `site/lib/`; both are git-ignored, never edit them.
 - `test/fixtures/` holds deliberately leaky and clean pages. `npm test` must run without a browser. Fake secrets are assembled in the test, never stored as credential-shaped strings (GitHub push protection blocks them).
 - `site/` is published to GitHub Pages: the landing page (`index.html`, `landing.css`, `landing.js`) at the root, which runs the real engine on the demo in an iframe and loads nothing from third parties (not even fonts) until someone presses play on the YouTube trailer, which only then swaps in a youtube-nocookie player. `site/demo/` is PromptPlop, a fake AI app builder that leaks on purpose (every check must fire on it; the tests enforce this). It must stay generic: never model it on, or name it after, a real company. It is the only thing the docs and landing page ever scan.
@@ -54,6 +54,6 @@ node bin/diarea.js scan ./dist/index.html --json
 - [x] Point the extension at `src/checks.js` (one source of truth)
 - [x] GitHub Action (`action.yml`) wrapping `--fail-on`
 - [x] Landing page on GitHub Pages
-- [ ] Post the score as a PR comment from the Action
+- [x] Post the score as a PR comment from the Action
 - [ ] Publish to npm as `diarea`
 - [ ] Live API watcher

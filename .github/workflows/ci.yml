@@ -23,6 +23,9 @@ jobs:
   # the gate is caught before anyone else's build depends on it.
   action:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # for the Leak Score comment on pull requests
     steps:
       - uses: actions/checkout@v4
 
@@ -32,6 +35,7 @@ jobs:
         with:
           target: test/fixtures/clean.html
           fail-on: "1"
+          comment: "false"
 
       - name: Leaky page fails the gate
         id: leaky
@@ -40,6 +44,16 @@ jobs:
         with:
           target: test/fixtures/leaky.html
           fail-on: "40"
+          comment: "false"
+
+      # Dogfooding: every pull request gets the Leak Score of our own landing
+      # page as a comment. It must stay Sealed.
+      - name: Our own landing page stays Sealed
+        if: github.event_name == 'pull_request'
+        uses: ./
+        with:
+          target: site/index.html
+          fail-on: "15"
 
       - name: Check outcomes
         env:

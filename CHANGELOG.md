@@ -2,6 +2,10 @@
 
 All notable changes to Diarea. Versions follow [semantic versioning](https://semver.org/); while it is 0.x, a minor bump can add checks that change scores.
 
+## Unreleased
+
+- **Leak Score on pull requests.** The GitHub Action posts the score as one comment and updates it on every push, with how it moved since the last one. New inputs `comment` (on by default), `comment-key` and `github-token`; the job needs `pull-requests: write`. It never fails the build: forked pull requests get a warning instead.
+
 ## 0.2.0
 
 - **Two new checks for AI apps (ten in total).** Flags an AI system prompt shipped in the bundle, and the browser calling an AI model API directly (which usually means a provider key is in the client). Scores can rise for pages with either.

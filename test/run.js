@@ -7,6 +7,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyse, scoreOf, bandOf } from "../src/checks.js";
 import { collectStatic } from "../src/collect-static.js";
+import { renderSummary } from "../scripts/action-summary.js";
+import { commentBody, keyOf, movement, previousScore, upsertComment } from "../scripts/pr-comment.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 // Fake keys are assembled here, not stored in the fixture, so the repo never
@@ -87,6 +89,48 @@ for (const [name, file] of [["extension popup", "extension/popup.js"], ["landing
   check(!RULE_COPY.test(src), `${name} holds no copy of the rules`);
 }
 check(!RULE_COPY.test(read("src/collect-page.js")), "page collector gathers evidence only");
+
+console.log("Pull request comment:");
+// A fake GitHub API: records calls and serves a list of existing comments.
+function fakeGitHub(existing, failWith) {
+  const calls = [];
+  const fetchImpl = async (url, opts) => {
+    calls.push({ method: opts.method, path: url.replace("https://api.test", ""), body: opts.body && JSON.parse(opts.body).body });
+    if (failWith) return { ok: false, status: failWith };
+    if (opts.method === "GET") return { ok: true, status: 200, json: async () => existing };
+    return { ok: true, status: 201, json: async () => ({}) };
+  };
+  return { calls, fetchImpl };
+}
+const prReport = { ...result, score, band: band.label, mode: "static (jsdom)" };
+const key = keyOf("dist/index.html");
+const render = (prev) => commentBody({ key, score, sha: "abcdef123", summary: renderSummary({ report: prReport, exitCode: 1, failOn: "40", headline: movement(prev, score) }) });
+const base = { api: "https://api.test", repo: "o/r", pr: 7, token: "t", key, render };
+
+let gh = fakeGitHub([]);
+let res = await upsertComment({ ...base, fetchImpl: gh.fetchImpl });
+const posted = gh.calls.find((c) => c.method === "POST");
+check(res.ok && res.action === "created" && posted && posted.path === "/repos/o/r/issues/7/comments", "creates one comment when there is none");
+check(previousScore(posted.body, key) === score && /Failed\./.test(posted.body), "comment carries the score marker and the verdict");
+check(!Object.values(FAKE_SECRETS).some((v) => posted.body.includes(v.slice(0, 12))), "comment never contains secret values");
+
+const old = { id: 99, user: { type: "Bot" }, body: commentBody({ key, score: 12, summary: "old" }) };
+gh = fakeGitHub([{ id: 5, user: { type: "User" }, body: "nice PR" }, old]);
+res = await upsertComment({ ...base, fetchImpl: gh.fetchImpl });
+const patched = gh.calls.find((c) => c.method === "PATCH");
+check(res.action === "updated" && patched && patched.path === "/repos/o/r/issues/comments/99" && /Up from 12/.test(patched.body),
+  "updates its own comment in place and says how the score moved");
+
+const other = { id: 42, user: { type: "Bot" }, body: commentBody({ key: keyOf("another/target.html"), score: 5, summary: "x" }) };
+const pasted = { id: 43, user: { type: "User" }, body: commentBody({ key, score: 3, summary: "pasted by a human" }) };
+gh = fakeGitHub([other, pasted]);
+res = await upsertComment({ ...base, fetchImpl: gh.fetchImpl });
+check(res.action === "created" && !gh.calls.some((c) => c.method === "PATCH"),
+  "leaves other targets' comments and human comments alone");
+
+gh = fakeGitHub([], 403);
+res = await upsertComment({ ...base, fetchImpl: gh.fetchImpl });
+check(res.ok === false && res.error.status === 403, "a read-only token (forked pull request) fails softly");
 
 console.log(failed === 0
   ? `\nAll ${expected.length} checks fired and every guard passed. Engine is working.\n`

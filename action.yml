@@ -21,6 +21,18 @@ inputs:
     description: "Navigation timeout for live scans, in milliseconds."
     required: false
     default: "30000"
+  comment:
+    description: "On pull requests, post the Leak Score as one comment and update it on every push. Needs `pull-requests: write`."
+    required: false
+    default: "true"
+  comment-key:
+    description: "Keeps comments apart when one workflow scans several targets. Defaults to the target."
+    required: false
+    default: ""
+  github-token:
+    description: "Token used to post the pull request comment."
+    required: false
+    default: ${{ github.token }}
   node-version:
     description: "Node version to run Diarea on (20 or later)."
     required: false
@@ -91,4 +103,8 @@ runs:
         CODE: ${{ steps.scan.outputs.code }}
         FAIL_ON: ${{ inputs.fail-on }}
         STRICT: ${{ inputs.strict }}
+        TARGET: ${{ inputs.target }}
+        COMMENT: ${{ inputs.comment }}
+        COMMENT_KEY: ${{ inputs.comment-key }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
       run: node "${{ github.action_path }}/scripts/action-report.js"

@@ -27,7 +27,7 @@ A GitHub Action wrapping the CLI (`action.yml`, see the README).
 - Runs on every deploy preview.
 - Fails the build when the leak score rises above your line, or a critical finding appears (a source map slips into production, a secret lands in the bundle).
 - Writes the score and findings to the job summary. **Done.**
-- Posts the score as a PR comment, so a regression is visible before merge. **Next.**
+- Posts the score as a PR comment, updated on every push, so a regression is visible before merge. **Done.**
 
 This turns "we should harden the frontend" into a check that cannot be forgotten.
 

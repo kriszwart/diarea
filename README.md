@@ -126,6 +126,18 @@ Gate your builds on the Leak Score. Scan your built HTML (no browser needed) or 
 
 The step fails when the CLI would (score at or over `fail-on`, or a critical finding with `strict`) and writes the score and findings to the job summary. Leave `fail-on` empty to report without failing.
 
+On pull requests it also posts the Leak Score as a comment, then updates that same comment on every push and says how the score moved ("⬆️ Up from 12, something started leaking"). Give the job permission to comment:
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: write
+```
+
+Commenting never fails the build: on forked pull requests (read-only token) it logs a warning and the job summary still has the report. Set `comment: false` to turn it off.
+
+We dogfood it: every pull request to this repo gets the Leak Score of our own landing page. It scores 11/100, Sealed. The one finding is that `landing.js` is readable, which for an open source site is rather the point.
+
 `@v0` follows the latest 0.x release. Pin to `@v0.2.0` (or a commit SHA) for a fixed version.
 
 | Input | Default | |
@@ -134,6 +146,9 @@ The step fails when the CLI would (score at or over `fail-on`, or a critical fin
 | `fail-on` | `40` | Fail at this score or more |
 | `strict` | `false` | Fail on any critical finding |
 | `timeout` | `30000` | Live scan timeout in ms |
+| `comment` | `true` | On pull requests, post the score as one comment and keep it updated |
+| `comment-key` | the target | Keeps comments apart when one workflow scans several targets |
+| `github-token` | `github.token` | Token used to comment |
 | `node-version` | `20` | Node to run on |
 
 Outputs: `score`, `band`, `critical` and `report` (path to the JSON report).
@@ -182,7 +197,7 @@ Diarea is the defensive agent. The plan is to let it fight everywhere your code 
 
 - **v0 (done)** Chrome extension. Scan your own page, get the score.
 - **v1 (done)** CLI: `npx diarea scan <url|file>`, static and live modes, shared engine.
-- **v2 (in progress)** CI gate. The GitHub Action wraps `--fail-on` and `--strict` and writes a job summary; posting the score as a PR comment is next.
+- **v2 (done)** CI gate. The GitHub Action wraps `--fail-on` and `--strict`, writes a job summary and keeps a Leak Score comment on every pull request.
 - **v3** Watcher: spot agent-style probing hitting your API live.
 
 ## Contributing
