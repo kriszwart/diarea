@@ -13,7 +13,7 @@ An AI agent can now read your frontend and rebuild your product. Diarea reads it
 ![local only](https://img.shields.io/badge/data-stays_local-38c884?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-ededea?style=flat-square)
 
-[Try it](#try-it-in-30-seconds) · [What it finds](#what-it-finds) · [Extension](#install-the-extension) · [CLI](#cli) · [GitHub Action](#github-action) · [The honest bit](#the-honest-bit) · [Roadmap](#roadmap)
+**[Website and live demo](https://kriszwart.github.io/diarea/)** · [Try it](#try-it-in-30-seconds) · [What it finds](#what-it-finds) · [Extension](#install-the-extension) · [CLI](#cli) · [GitHub Action](#github-action) · [The honest bit](#the-honest-bit) · [Roadmap](#roadmap)
 
 <img src="docs/assets/scan.svg" alt="Diarea scanning the deliberately leaky demo site and scoring it 94 out of 100, Gushing" width="760">
 
@@ -23,7 +23,7 @@ An AI agent can now read your frontend and rebuild your product. Diarea reads it
 
 ## Try it in 30 seconds
 
-We built a fake startup that leaks everything, so you can watch Diarea work without pointing it at anything that matters. Meet [Colander AI](https://kriszwart.github.io/diarea/demo/), the founder-scoring engine that holds nothing back. Its secret algorithm is in your browser. Its source maps shipped on a Tuesday. Its API key has been in the bundle since 2019.
+We built a fake startup that leaks everything, so you can watch Diarea work without pointing it at anything that matters. [Watch it get diagnosed on the website](https://kriszwart.github.io/diarea/#scan), or meet [Colander AI](https://kriszwart.github.io/diarea/demo/) directly: the founder-scoring engine that holds nothing back. Its secret algorithm is in your browser. Its source maps shipped on a Tuesday. Its API key has been in the bundle since 2019.
 
 ```
 git clone https://github.com/kriszwart/diarea && cd diarea && npm install
@@ -68,7 +68,7 @@ Each finding comes with what a reader sees and a one-line fix (we call it "flush
 
 ## Install the extension
 
-1. Clone this repo and run `npm install && npm run build:extension`. The build copies the shared engine (`src/checks.js`) into `extension/lib/`.
+1. Clone this repo and run `npm install && npm run build:extension`. The build copies the shared engine and page collector from `src/` into `extension/lib/`.
 2. Open `chrome://extensions` in Chrome or Edge.
 3. Turn on **Developer mode** (top right).
 4. Click **Load unpacked** and select the `extension/` folder.

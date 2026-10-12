@@ -3,24 +3,227 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Diarea</title>
-  <meta name="description" content="Diarea finds what your frontend leaks. The landing page is on its way; the demo is not." />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💩</text></svg>" />
-  <style>
-    :root { --ink: #1d1b16; --soft: #6b665c; --paper: #fbf7ef; --accent: #e8592b; }
-    @media (prefers-color-scheme: dark) { :root { --ink: #f3efe6; --soft: #b0a99b; --paper: #191714; --accent: #ff7a4d; } }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; box-sizing: border-box;
-      font: 17px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--paper); text-align: center; }
-    h1 { font-size: 44px; margin: 0 0 8px; }
-    p { color: var(--soft); max-width: 460px; margin: 0 auto 18px; }
-    a { color: var(--accent); font-weight: 600; }
-  </style>
+  <title>Diarea: finds what your frontend leaks</title>
+  <meta name="description" content="An AI agent can read your frontend and rebuild your product. Diarea reads it first, scores the leak from Sealed to Gushing, and tells you how to flush it. Open source, local only." />
+  <meta name="theme-color" content="#191714" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Diarea: finds what your frontend leaks" />
+  <meta property="og:description" content="Exposed keys, source maps, API maps and debug globals, scored from Sealed to Gushing. Chrome extension, CLI and GitHub Action. MIT." />
+  <meta property="og:url" content="https://kriszwart.github.io/diarea/" />
+  <meta property="og:image" content="https://kriszwart.github.io/diarea/assets/social-preview.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="assets/mascot.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="landing.css" />
 </head>
 <body>
-  <main>
-    <h1>💩 Diarea</h1>
-    <p>Finds what your frontend leaks before anyone else does. The proper landing page is still in the pipes.</p>
-    <p><a href="demo/">Scan the leaky demo</a> · <a href="https://github.com/kriszwart/diarea">GitHub</a></p>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="nav wrap">
+    <a class="logo" href="#top" aria-label="Diarea home">
+      <img src="assets/mascot.svg" alt="" width="34" height="34" />
+      <span>Diarea</span>
+    </a>
+    <nav aria-label="Main">
+      <a href="#scan">Demo</a>
+      <a href="#use">Install</a>
+      <a href="#faq">FAQ</a>
+      <a class="nav-gh" href="https://github.com/kriszwart/diarea">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <!-- Hero -->
+    <section class="hero wrap" id="top">
+      <div class="hero-copy">
+        <p class="eyebrow">Open source · Local only · Mildly disgusting</p>
+        <h1>Your frontend is <span class="drip">leaking</span>.</h1>
+        <p class="lede">An AI agent can now read your site and rebuild your product from what it finds.
+          Diarea reads it first, scores the leak from <b>Sealed</b> to <b>Gushing</b>, and tells you how to flush it.</p>
+        <div class="ctas">
+          <a class="btn btn-primary" href="#scan" data-autoscan>Scan the leaky demo</a>
+          <a class="btn btn-ghost" href="https://github.com/kriszwart/diarea">Star it on GitHub</a>
+        </div>
+        <p class="fine">Exposed keys, source maps, API maps, debug globals and the logic you thought was private.</p>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <img class="mascot" src="assets/mascot.svg" alt="" width="300" height="300" />
+        <div class="bubble">Oh no. Oh no no no.</div>
+      </div>
+    </section>
+
+    <!-- Live demo scan -->
+    <section class="scan wrap" id="scan" aria-labelledby="scan-title">
+      <div class="section-head">
+        <p class="eyebrow">Live demo</p>
+        <h2 id="scan-title">Meet the patient: Colander AI</h2>
+        <p>A fake startup we built to leak on purpose. Its secret scoring algorithm is in your browser, its source maps shipped on a Tuesday,
+          and its API key has been in the bundle since 2019. Press the button and the real Diarea engine examines it, right here, in this tab.</p>
+      </div>
+
+      <div class="scan-grid">
+        <figure class="browser">
+          <div class="browser-bar" aria-hidden="true">
+            <span></span><span></span><span></span>
+            <code>kriszwart.github.io/diarea/demo/</code>
+          </div>
+          <div class="browser-view">
+            <iframe id="demo-frame" src="demo/" title="Colander AI, the deliberately leaky demo site" tabindex="-1"></iframe>
+          </div>
+          <figcaption>Everything here is invented. Every key is fake. Nothing phones home. <a href="demo/">Open it full size</a>.</figcaption>
+        </figure>
+
+        <div class="report">
+          <div class="gauge-row">
+            <div class="gauge" id="gauge">
+              <svg viewBox="0 0 120 120" aria-hidden="true">
+                <circle class="track" cx="60" cy="60" r="52" />
+                <circle class="fill" id="gauge-fill" cx="60" cy="60" r="52" />
+              </svg>
+              <div class="gauge-num" aria-hidden="true"><span id="score">?</span><small>/100</small></div>
+            </div>
+            <div class="verdict" aria-live="polite">
+              <p class="band" id="band">Awaiting diagnosis</p>
+              <p class="band-line" id="band-line">Nothing examined yet. The patient is nervous.</p>
+              <button class="btn btn-primary" id="scan-btn" type="button">Run the diagnosis</button>
+            </div>
+          </div>
+          <ol class="findings" id="findings" aria-label="Findings"></ol>
+          <p class="scan-note" id="scan-note">Runs <code>src/checks.js</code>, the same engine as the extension, CLI and GitHub Action.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bands -->
+    <section class="bands wrap" aria-labelledby="bands-title">
+      <div class="section-head">
+        <p class="eyebrow">The Leak Score</p>
+        <h2 id="bands-title">Four stages of grief</h2>
+        <p>Eight checks roll up into one score from 0 to 100. Critical findings hurt most. Lower is better, which is the opposite of everything else you measure.</p>
+      </div>
+      <ol class="band-cards">
+        <li class="band-card sealed"><span class="range">0 to 14</span><h3>Sealed</h3><p>Tight. An agent would come away with very little. Frame it.</p></li>
+        <li class="band-card seeping"><span class="range">15 to 39</span><h3>Seeping</h3><p>A few things are showing. Worth a wipe-down before the weekend.</p></li>
+        <li class="band-card leaking"><span class="range">40 to 69</span><h3>Leaking</h3><p>Your logic and data are readable from the browser. Cancel the offsite.</p></li>
+        <li class="band-card gushing"><span class="range">70 to 100</span><h3>Gushing</h3><p>Most of how this works is sitting in the open. Colander AI lives here.</p></li>
+      </ol>
+    </section>
+
+    <!-- What it checks -->
+    <section class="checks wrap" aria-labelledby="checks-title">
+      <div class="section-head">
+        <p class="eyebrow">What it sniffs out</p>
+        <h2 id="checks-title">Eight things an agent loves to find</h2>
+      </div>
+      <ul class="check-grid">
+        <li><b>Source maps in production</b><span>Your original source, comments and all. Gift-wrapped.</span></li>
+        <li><b>Secrets in client code</b><span>Keys and tokens in shipped JavaScript. Reported as a prefix and a length, never in full.</span></li>
+        <li><b>Client-side scoring</b><span>Weightings and thresholds running in the browser. The bit that makes you different.</span></li>
+        <li><b>Fat hydration payloads</b><span>Boot blobs carrying ids, flags and fields nobody sees on screen.</span></li>
+        <li><b>Readable bundles</b><span>Un-minified code with the TODOs still attached.</span></li>
+        <li><b>A self-mapping API</b><span>Every endpoint listed in the bundle. GraphQL introspection left on.</span></li>
+        <li><b>Chatty hidden fields</b><span>Hidden inputs and data attributes holding prices, roles and flags.</span></li>
+        <li><b>A stack fingerprint</b><span>Not a leak alone, but it tells a reader which known tricks to try.</span></li>
+      </ul>
+    </section>
+
+    <!-- Three ways to use it -->
+    <section class="use wrap" id="use" aria-labelledby="use-title">
+      <div class="section-head">
+        <p class="eyebrow">Install</p>
+        <h2 id="use-title">Three ways to check yourself</h2>
+        <p>One engine, three doors. Same checks, same score, wherever your code ships.</p>
+      </div>
+      <div class="use-grid">
+        <article class="use-card">
+          <h3>Chrome extension</h3>
+          <p>Open your own site, click the icon, get the score. Nothing leaves the browser.</p>
+          <div class="code"><pre><code>git clone https://github.com/kriszwart/diarea
+cd diarea &amp;&amp; npm install &amp;&amp; npm run build:extension</code></pre><button class="copy" type="button">Copy</button></div>
+          <p class="small">Then load <code>extension/</code> unpacked at <code>chrome://extensions</code>. Web Store listing on the way.</p>
+        </article>
+        <article class="use-card">
+          <h3>CLI</h3>
+          <p>Scan build output with no browser, or a live URL with one. JSON for machines, cheek for humans.</p>
+          <div class="code"><pre><code>npx diarea scan dist/index.html
+npx diarea scan https://your-site.com --fail-on 40</code></pre><button class="copy" type="button">Copy</button></div>
+          <p class="small">Exit codes: <code>0</code> fine, <code>1</code> over your line, <code>2</code> could not scan.</p>
+        </article>
+        <article class="use-card">
+          <h3>GitHub Action</h3>
+          <p>Fail the build when the score creeps up. The findings land in the job summary.</p>
+          <div class="code"><pre><code>- uses: kriszwart/diarea@v0
+  with:
+    target: dist/index.html
+    fail-on: 40</code></pre><button class="copy" type="button">Copy</button></div>
+          <p class="small">Add <code>strict: true</code> to fail on any critical finding.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- The honest bit -->
+    <section class="honest wrap" aria-labelledby="honest-title">
+      <div class="honest-card">
+        <h2 id="honest-title">The honest bit</h2>
+        <p>Diarea is a diagnosis, not armour. You cannot stop an agent reading your frontend: whatever the browser receives, it receives too.
+          The real fixes happen elsewhere, and Diarea points you at them.</p>
+        <ul>
+          <li>Run the scoring engine on the server. Ship verdicts, never the rules.</li>
+          <li>Return only the fields the page renders.</li>
+          <li>Strip source maps and minify what ships.</li>
+          <li>Keep secrets off the client. Publishable keys only.</li>
+          <li>Guard the API with auth, quotas and rate limits.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq wrap" id="faq" aria-labelledby="faq-title">
+      <div class="section-head">
+        <p class="eyebrow">FAQ</p>
+        <h2 id="faq-title">Questions we get, mostly about the name</h2>
+      </div>
+      <details>
+        <summary>Is the name a typo?</summary>
+        <p>No, it is a pun with a backstory. <a href="https://github.com/morluto/rea">REA</a> is an agent that reverse-engineers products.
+          Diarea is its defensive counterpart for the frontend. They share their last letters, and one of them is about leaks. We regret nothing.</p>
+      </details>
+      <details>
+        <summary>Can I scan someone else's site?</summary>
+        <p>Please do not. Diarea is defensive: scan sites you own or are authorised to test. It reads what any browser could read,
+          never exploits anything, and hides secret values even in its own reports. If you want a safe target, Colander AI is all yours.</p>
+      </details>
+      <details>
+        <summary>Does anything leave my machine?</summary>
+        <p>No. The extension and CLI make no requests of their own beyond reading the page you point them at. No telemetry, no accounts, no storage.
+          This website loads nothing from anyone else either. Not even fonts.</p>
+      </details>
+      <details>
+        <summary>A low score means I am safe, right?</summary>
+        <p>It means nothing obvious is leaking from the frontend. Your API, your auth and your servers are a different conversation.
+          Think of it as a smoke alarm, not a fire brigade.</p>
+      </details>
+      <details>
+        <summary>How do I add a check?</summary>
+        <p>Every rule lives in one file, <code>src/checks.js</code>. Add yours, give Colander AI a leak that trips it, and open a pull request.
+          The <a href="https://github.com/kriszwart/diarea/blob/main/CONTRIBUTING.md">contributing guide</a> has the details.</p>
+      </details>
+    </section>
+
+    <section class="cta wrap">
+      <img src="assets/mascot.svg" alt="" width="96" height="96" />
+      <h2>Check yourself before someone else does.</h2>
+      <div class="ctas">
+        <a class="btn btn-primary" href="https://github.com/kriszwart/diarea">Get Diarea on GitHub</a>
+        <a class="btn btn-ghost" href="#scan" data-autoscan>Watch the demo again</a>
+      </div>
+    </section>
   </main>
+
+  <footer class="footer wrap">
+    <p>Diarea is open source under the <a href="https://github.com/kriszwart/diarea/blob/main/LICENSE">MIT licence</a>. Made by Kris Zwart, ZwartifyDesign. Built in Kuala Lumpur.</p>
+    <p>Colander AI is not a real company. No startups were harmed.</p>
+  </footer>
+
+  <script type="module" src="landing.js"></script>
 </body>
 </html>

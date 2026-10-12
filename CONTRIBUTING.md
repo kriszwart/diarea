@@ -21,10 +21,10 @@ Keep checks local and read-only. The scanner must never send anything off the ma
 ```
 npm install
 npm test                    # no browser needed
-npm run build:extension     # copies src/checks.js into extension/lib/
+npm run build               # copies the engine into extension/lib/ and site/lib/
 ```
 
-Load `extension/` unpacked at `chrome://extensions` with Developer mode on. After editing `src/checks.js`, rebuild and reload the extension. If a check needs new evidence, collect it in `src/collect-static.js`, `src/collect-live.js` and `collectPage()` in `extension/popup.js`. Add a case to `test/fixtures/` so it can be verified, and give Colander AI (`site/demo/`) a leak that trips it: the tests check the demo fires every check.
+Load `extension/` unpacked at `chrome://extensions` with Developer mode on. After editing `src/checks.js`, rebuild and reload the extension. If a check needs new evidence, collect it in `src/collect-static.js` (files, jsdom) and `src/collect-page.js` (real pages: the extension, live CLI and landing page all use it). Add a case to `test/fixtures/` so it can be verified, and give Colander AI (`site/demo/`) a leak that trips it: the tests check the demo fires every check.
 
 ## Ground rules
 

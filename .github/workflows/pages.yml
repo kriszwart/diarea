@@ -1,11 +1,12 @@
 name: Pages
 
-# Publishes site/ to GitHub Pages: the deliberately leaky demo lives at
-# /demo/. Enable once in Settings > Pages > Source: GitHub Actions.
+# Publishes site/ to GitHub Pages: the landing page at the root and the
+# deliberately leaky demo at /demo/. Enable once in Settings > Pages >
+# Source: GitHub Actions.
 on:
   push:
     branches: [main]
-    paths: ["site/**", ".github/workflows/pages.yml"]
+    paths: ["site/**", "src/**", "docs/assets/**", "scripts/build.js", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -25,6 +26,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # Copies the engine, page collector and images into site/ (no npm install needed)
+      - run: node scripts/build.js site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

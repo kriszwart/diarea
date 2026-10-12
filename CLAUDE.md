@@ -17,12 +17,13 @@ First real target: revoluAItion (revoluaition.com), a client-rendered app, so th
 
 - `src/checks.js` is the single canonical detection engine. Every rule lives here and only here. The CLI and the extension both import it; never duplicate rules elsewhere.
 - `src/collect-static.js` collects page evidence with jsdom (no browser, safe on untrusted markup, good for CI and build output). When scanning a file it also reads that page's local `<script src>` files and sibling `.map` files, only inside the file's own folder. Never execute page scripts or fetch anything in this path.
-- `src/collect-live.js` collects with Playwright (real page load: globals, fetched bundles, network map).
+- `src/collect-page.js` is the in-page collector, a self-contained function run inside a real page. The extension (chrome.scripting), the live CLI (`src/collect-live.js`, Playwright) and the landing page (demo iframe) all use it; never write another one.
+- `src/collect-live.js` loads the page with Playwright, runs `collectPage` and adds the network map.
 - `bin/diarea.js` is the CLI entry point.
 - `action.yml` is the GitHub Action: it runs the CLI with `--json` and `scripts/action-report.js` turns the report into outputs, a job summary and the CLI's exit code.
-- `extension/` holds the Chrome extension. It should consume `src/checks.js` via a small build step, not an inline copy.
+- `extension/` holds the Chrome extension. `npm run build` (`scripts/build.js`) copies `src/checks.js` and `src/collect-page.js` into `extension/lib/` and `site/lib/`; both are git-ignored, never edit them.
 - `test/fixtures/` holds deliberately leaky and clean pages. `npm test` must run without a browser. Fake secrets are assembled in the test, never stored as credential-shaped strings (GitHub push protection blocks them).
-- `site/` is published to GitHub Pages. `site/demo/` is Colander AI, a fake startup that leaks on purpose (all eight checks must fire on it; the tests enforce this). It is the only thing the docs and landing page ever scan.
+- `site/` is published to GitHub Pages: the landing page (`index.html`, `landing.css`, `landing.js`) at the root, which runs the real engine on the demo in an iframe and loads nothing from third parties (not even fonts). `site/demo/` is Colander AI, a fake startup that leaks on purpose (all eight checks must fire on it; the tests enforce this). It is the only thing the docs and landing page ever scan.
 - `docs/assets/scan.svg` is rendered from real CLI output by `scripts/render-terminal-svg.js`; `social-preview.png` is a screenshot of `social-preview.html`.
 
 ## Checks (current eight)
@@ -52,6 +53,7 @@ node bin/diarea.js scan ./dist/index.html --json
 - [x] Port the CLI, engine and tests into this repo
 - [x] Point the extension at `src/checks.js` (one source of truth)
 - [x] GitHub Action (`action.yml`) wrapping `--fail-on`
+- [x] Landing page on GitHub Pages
 - [ ] Post the score as a PR comment from the Action
 - [ ] Publish to npm as `diarea`
 - [ ] Live API watcher

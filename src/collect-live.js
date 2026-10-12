@@ -7,6 +7,8 @@
  * a browser. If it is missing, this throws a clear, actionable error.
  */
 
+import { collectPage } from "./collect-page.js";
+
 export async function collectLive(url, opts = {}) {
   const timeout = opts.timeout || 30000;
 
@@ -41,68 +43,7 @@ export async function collectLive(url, opts = {}) {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout });
   }
 
-  const collected = await page.evaluate(async () => {
-    const uniq = (a) => Array.from(new Set(a));
-    const origin = location.origin;
-    const scripts = Array.from(document.scripts);
-    const inlineScripts = scripts.filter((s) => !s.src).map((s) => s.textContent || "");
-    const externalSrcs = uniq(scripts.filter((s) => s.src).map((s) => s.src));
-
-    const sameOrigin = externalSrcs.filter((u) => {
-      try { return new URL(u, origin).origin === origin; } catch { return false; }
-    });
-    const bundles = [];
-    await Promise.all(sameOrigin.slice(0, 16).map(async (u) => {
-      try {
-        const r = await fetch(u, { credentials: "omit" });
-        if (r.ok) bundles.push({ url: u, body: await r.text() });
-      } catch {}
-    }));
-
-    let liveMapFound = false;
-    for (const b of bundles.slice(0, 4)) {
-      try { const r = await fetch(b.url + ".map", { credentials: "omit" }); if (r.ok) { liveMapFound = true; break; } } catch {}
-    }
-
-    const names = ["__NEXT_DATA__", "__NUXT__", "__APOLLO_STATE__", "__PRELOADED_STATE__",
-      "__INITIAL_STATE__", "__remixContext", "__sveltekit", "__REDUX_DEVTOOLS_EXTENSION__"];
-    const globals = names.filter((g) => { try { return typeof window[g] !== "undefined"; } catch { return false; } });
-    let biggestStateBytes = 0;
-    for (const g of globals) {
-      try { biggestStateBytes = Math.max(biggestStateBytes, JSON.stringify(window[g] || "").length); } catch {}
-    }
-    const jsonBlocks = Array.from(document.querySelectorAll('script[type="application/json"]'))
-      .map((s) => (s.textContent || "").length);
-    const biggestJsonBytes = jsonBlocks.length ? Math.max(...jsonBlocks) : 0;
-
-    const hiddenFields = Array.from(document.querySelectorAll('input[type="hidden"]'))
-      .map((el) => el.name || el.id).filter(Boolean);
-    const dataAttrs = [];
-    document.querySelectorAll("[data-id],[data-price],[data-cost],[data-user-id],[data-plan],[data-internal],[data-score],[data-tier]")
-      .forEach((el) => {
-        for (const a of el.attributes) {
-          if (a.name.startsWith("data-") && /id|price|cost|plan|internal|score|tier|user/i.test(a.name)) {
-            dataAttrs.push(a.name + '="' + (a.value.length > 24 ? a.value.slice(0, 24) + "..." : a.value) + '"');
-          }
-        }
-      });
-
-    const fp = [];
-    if (window.__NEXT_DATA__ || document.querySelector("#__next")) fp.push("Next.js");
-    if (window.__NUXT__) fp.push("Nuxt");
-    if (window.React || document.querySelector("[data-reactroot]")) fp.push("React");
-    if (window.__VUE__ || document.querySelector("[data-v-app]")) fp.push("Vue");
-    if (document.querySelector("[ng-version]")) fp.push("Angular");
-    if (window.__svelte || window.__sveltekit) fp.push("Svelte");
-    if (window.jQuery) fp.push("jQuery");
-
-    return {
-      url: location.href, host: location.host, origin,
-      inlineScripts, bundles, html: document.documentElement.outerHTML,
-      globals, biggestStateBytes, biggestJsonBytes, liveMapFound,
-      hiddenFields, dataAttrs, frameworks: fp,
-    };
-  });
+  const collected = await page.evaluate(collectPage);
 
   await browser.close();
   collected.networkUrls = Array.from(networkUrls);

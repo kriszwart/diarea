@@ -75,10 +75,16 @@ const escape = collectStatic(
   "file:///fixtures/index.html", { root: path.join(here, "fixtures") });
 check(escape.bundles.length === 0, "never reads scripts outside the scanned folder or over the network");
 
-console.log("Extension:");
-const popup = fs.readFileSync(path.join(here, "..", "extension", "popup.js"), "utf8");
-check(/from "\.\/lib\/checks\.js"/.test(popup), "popup imports the shared engine");
-check(!/sk_live_|sourceMappingURL=|function analyse/.test(popup), "popup holds no copy of the rules");
+console.log("One engine:");
+const read = (...p) => fs.readFileSync(path.join(here, "..", ...p), "utf8");
+const RULE_COPY = /sk_live_|sourceMappingURL=|function analyse|secretRules|logicTerms/;
+for (const [name, file] of [["extension popup", "extension/popup.js"], ["landing page", "site/landing.js"]]) {
+  const src = read(file);
+  check(/from "\.\/lib\/checks\.js"/.test(src) && /from "\.\/lib\/collect-page\.js"/.test(src),
+    `${name} imports the shared engine and collector`);
+  check(!RULE_COPY.test(src), `${name} holds no copy of the rules`);
+}
+check(!RULE_COPY.test(read("src/collect-page.js")), "page collector gathers evidence only");
 
 console.log(failed === 0
   ? `\nAll ${expected.length} checks fired and every guard passed. Engine is working.\n`
