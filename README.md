@@ -15,6 +15,10 @@ An AI agent can now read your frontend and rebuild your product. Diarea reads it
 
 **[Website and live demo](https://kriszwart.github.io/diarea/)** · [Try it](#try-it-in-30-seconds) · [What it finds](#what-it-finds) · [Extension](#install-the-extension) · [CLI](#cli) · [GitHub Action](#github-action) · [The honest bit](#the-honest-bit) · [What a clone can't copy](#what-a-clone-cant-copy) · [Roadmap](#roadmap)
 
+<a href="https://youtu.be/pWG9IXBkpvM"><img src="https://img.youtube.com/vi/pWG9IXBkpvM/maxresdefault.jpg" alt="Watch the Diarea trailer on YouTube" width="760"></a>
+
+<sub>▶ <a href="https://youtu.be/pWG9IXBkpvM">Watch the trailer</a></sub>
+
 <img src="docs/assets/scan.svg" alt="Diarea scanning the deliberately leaky demo site and scoring it Gushing, Gushing" width="760">
 
 </div>

@@ -24,6 +24,7 @@
       <span>Diarea</span>
     </a>
     <nav aria-label="Main">
+      <a href="#trailer">Trailer</a>
       <a href="#scan">Demo</a>
       <a href="#use">Install</a>
       <a href="#faq">FAQ</a>
@@ -49,6 +50,20 @@
         <img class="mascot" src="assets/mascot.svg" alt="" width="300" height="300" />
         <div class="bubble">Oh no. Oh no no no.</div>
       </div>
+    </section>
+
+    <!-- Trailer -->
+    <section class="trailer wrap" id="trailer" aria-labelledby="trailer-title">
+      <h2 id="trailer-title" class="sr-only">Trailer</h2>
+      <div class="video" data-video="pWG9IXBkpvM">
+        <button class="video-poster" type="button" aria-label="Play the Diarea trailer (loads YouTube)">
+          <img src="assets/mascot.svg" alt="" width="120" height="120" />
+          <span class="play" aria-hidden="true"></span>
+          <span class="video-title">Watch the trailer</span>
+          <span class="video-note">Plays from YouTube. Nothing loads from YouTube until you press play.</span>
+        </button>
+      </div>
+      <p class="video-alt"><a href="https://youtu.be/pWG9IXBkpvM">Open the trailer on YouTube</a></p>
     </section>
 
     <!-- Live demo scan -->
@@ -218,7 +233,7 @@ npx diarea scan https://your-site.com --fail-on 40</code></pre><button class="co
       <details>
         <summary>Does anything leave my machine?</summary>
         <p>No. The extension and CLI make no requests of their own beyond reading the page you point them at. No telemetry, no accounts, no storage.
-          This website loads nothing from anyone else either. Not even fonts.</p>
+          This website loads nothing from anyone else either, not even fonts. The one exception is the trailer, and only once you press play.</p>
       </details>
       <details>
         <summary>A low score means I am safe, right?</summary>
