@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="popup.css" />
+  <title>Diarea</title>
+</head>
+<body>
+  <header class="masthead">
+    <div class="wordmark">
+      <span class="logo" aria-hidden="true">&#128169;</span>
+      <div class="titles">
+        <h1>Diarea</h1>
+        <p class="tag">the frontend leak scanner</p>
+      </div>
+    </div>
+    <button id="rescan" class="rescan" title="Run the diagnosis again">Re-scan</button>
+  </header>
+
+  <main id="view">
+    <section id="loading" class="state">
+      <div class="spinner" aria-hidden="true"></div>
+      <p>Running the diagnosis...</p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span class="local">Nothing leaves this browser.</span>
+    <span class="target" id="target"></span>
+  </footer>
+
+  <template id="report-tpl">
+    <section class="report">
+      <div class="score-row">
+        <div class="gauge">
+          <svg viewBox="0 0 120 120" width="112" height="112">
+            <circle class="track" cx="60" cy="60" r="52" />
+            <circle class="fill" cx="60" cy="60" r="52" />
+          </svg>
+          <div class="score-centre">
+            <span class="score-num">0</span>
+            <span class="score-max">/100</span>
+          </div>
+        </div>
+        <div class="score-meta">
+          <span class="band">Sealed</span>
+          <p class="verdict">Reading your frontend the way REA would.</p>
+          <div class="counts">
+            <span class="pill crit"><b>0</b> critical</span>
+            <span class="pill warn"><b>0</b> exposed</span>
+            <span class="pill info"><b>0</b> minor</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="findings"></div>
+
+      <p class="disclaimer">
+        A diagnosis, not a shield. This flags what your own page gives away. It cannot stop
+        an outside party who runs their own tools. The real fixes are server-side and in your build.
+      </p>
+    </section>
+  </template>
+
+  <template id="finding-tpl">
+    <details class="finding">
+      <summary>
+        <span class="sev-dot"></span>
+        <span class="f-title"></span>
+        <span class="f-chip"></span>
+      </summary>
+      <div class="f-body">
+        <p class="f-detail"></p>
+        <div class="f-evidence"></div>
+        <p class="f-fix"><span class="fix-label">Flush it</span> <span class="fix-text"></span></p>
+      </div>
+    </details>
+  </template>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+{
+  "name": "diarea",
+  "version": "0.1.0",
+  "description": "See what an agent could reverse-engineer from your frontend. A local, read-only leak scanner. The defensive counterpart to REA.",
+  "type": "module",
+  "bin": {
+    "diarea": "bin/diarea.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "scan": "node bin/diarea.js scan",
+    "test": "node tests/run.js"
+  },
+  "keywords": [
+    "reverse-engineering",
+    "security",
+    "frontend",
+    "source-maps",
+    "leak-scanner",
+    "chrome-extension",
+    "cli"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "jsdom": "^24"
+  },
+  "optionalDependencies": {
+    "playwright": "^1.47"
+  }
+}
