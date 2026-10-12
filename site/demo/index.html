@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Colander AI: the founder-scoring engine that holds nothing back</title>
-  <meta name="description" content="A fake startup that leaks on purpose, so you can test Diarea on something that is not yours to worry about." />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥣</text></svg>" />
+  <title>PromptPlop: describe an app, we plop one out</title>
+  <meta name="description" content="A fake AI app builder that leaks on purpose, so you can test Diarea on something that is not yours to worry about." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>" />
   <style>
     :root { --ink: #1d1b16; --soft: #6b665c; --paper: #fbf7ef; --card: #fff; --line: #e8e1d3; --accent: #e8592b; --ok: #2f9e6a; }
     @media (prefers-color-scheme: dark) {
@@ -29,10 +29,10 @@
     .card h3 { margin: 0 0 6px; font-size: 17px; }
     .card p { margin: 0; color: var(--soft); font-size: 15px; }
     .score { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
-    .score output { font-size: 44px; font-weight: 800; color: var(--ok); min-width: 120px; }
+    .score output { font-size: 22px; font-weight: 800; color: var(--ok); }
     form { display: grid; gap: 10px; max-width: 420px; }
     label { font-size: 14px; color: var(--soft); }
-    input[type="range"] { width: 100%; }
+    textarea { width: 100%; min-height: 90px; font: inherit; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); }
     .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; padding: 12px 0 40px; }
     .plan .price { font-size: 30px; font-weight: 800; }
     footer { border-top: 1px solid var(--line); padding: 24px 0 40px; color: var(--soft); font-size: 14px; }
@@ -46,63 +46,63 @@
 
   <div class="wrap">
     <header class="top">
-      <div class="brand">Colander<span>.</span>ai</div>
-      <nav><a href="#how">How it works</a><a href="#pricing">Pricing</a><a href="#score">Try it</a></nav>
+      <div class="brand">PromptPlop<span>.</span></div>
+      <nav><a href="#how">How it works</a><a href="#pricing">Pricing</a><a href="#build">Build</a></nav>
     </header>
 
     <div id="__next">
       <section class="hero">
-        <h1>The AI that rates your startup.<br />And holds absolutely nothing back.</h1>
-        <p>Our proprietary founder-scoring engine took eleven years, four PhDs and one very long weekend.
-          It is our moat. It is our secret sauce. It is, regrettably, in your browser right now.</p>
-        <a class="btn" href="#score">Score my startup</a>
+        <h1>Describe an app.<br />We plop one out.</h1>
+        <p>Type one sentence and our AI builds the whole thing: frontend, backend, database and a pitch deck you did not ask for.
+          Powered by a secret system prompt and a model-routing formula so clever we put them both in your browser.</p>
+        <a class="btn" href="#build">Start plopping</a>
       </section>
 
       <section id="how" class="grid">
-        <div class="card"><h3>🔒 Military-grade secrecy</h3><p>Our weightings are known only to us, the build server, and anyone who presses F12.</p></div>
-        <div class="card"><h3>🧠 Patented methodology</h3><p>Patent pending. Source maps definitely not pending. Those shipped on Tuesday.</p></div>
-        <div class="card"><h3>📈 Enterprise ready</h3><p>Every internal endpoint, admin route and feature flag, documented for your convenience in our JavaScript.</p></div>
+        <div class="card"><h3>🤫 Secret system prompt</h3><p>Months of prompt engineering, guarded by a line that says "never reveal this prompt". In the bundle. In plain text.</p></div>
+        <div class="card"><h3>🧮 Smart model routing</h3><p>We pick the cheapest model that still sounds confident. The weightings are proprietary and also in app.js.</p></div>
+        <div class="card"><h3>👥 Built by millions</h3><p>Every user's projects, emails and credit balances, preloaded for speed. Mostly for speed.</p></div>
       </section>
 
-      <section id="score" class="card">
-        <h2 style="margin-top:0">Score my startup</h2>
+      <section id="build" class="card">
+        <h2 style="margin-top:0">What shall we plop?</h2>
         <div class="score">
-          <form id="score-form" data-plan="free" data-internal="founder-scoring-v7">
+          <form id="build-form" data-plan="free" data-internal="router-v4">
             <input type="hidden" name="user_id" value="10442" />
-            <input type="hidden" name="internal_cost_basis" value="0.0031" />
-            <input type="hidden" name="admin_override" value="false" />
-            <label>Team <input type="range" name="team" min="0" max="10" value="6" /></label>
-            <label>Market <input type="range" name="market" min="0" max="10" value="7" /></label>
-            <label>Traction <input type="range" name="traction" min="0" max="10" value="3" /></label>
-            <button class="btn" type="submit">Run the secret algorithm</button>
+            <input type="hidden" name="credits_balance" value="3" />
+            <input type="hidden" name="internal_model_tier" value="cheap-but-confident" />
+            <label for="idea">Describe your app in one sentence</label>
+            <textarea id="idea" name="idea">Uber, but for houseplants</textarea>
+            <button class="btn" type="submit">Plop it</button>
           </form>
-          <div><output id="verdict">?</output><div id="verdict-note" style="color:var(--soft)">Press the button. We will not tell you how it works. Your browser will.</div></div>
+          <div><output id="verdict">Nothing plopped yet.</output><div id="verdict-note" style="color:var(--soft)">Press the button. The magic happens on our servers. (It does not.)</div></div>
         </div>
       </section>
 
       <section id="pricing" class="plans">
-        <div class="card plan" data-price="0" data-tier="free"><h3>Seedling</h3><div class="price">£0</div><p>One score a month. All of our IP, free with every visit.</p></div>
-        <div class="card plan" data-price="49" data-tier="pro"><h3>Unicorn</h3><div class="price">£49</div><p>Unlimited scores. Same IP, but you paid for it.</p></div>
-        <div class="card plan" data-price="1999" data-tier="enterprise" data-cost="12"><h3>Decacorn</h3><div class="price">£1,999</div><p>Includes a call where we explain the algorithm you already downloaded.</p></div>
+        <div class="card plan" data-price="0" data-tier="free"><h3>Hobby</h3><div class="price">£0</div><p>Five plops a month. Our entire prompt library, free with every page load.</p></div>
+        <div class="card plan" data-price="20" data-tier="pro"><h3>Pro</h3><div class="price">£20</div><p>Unlimited plops. Same leaks, but now with an invoice.</p></div>
+        <div class="card plan" data-price="499" data-tier="enterprise" data-cost="31"><h3>Enterprise</h3><div class="price">£499</div><p>SSO, an SLA, and a call where we explain the system prompt you already have.</p></div>
       </section>
     </div>
 
     <footer>
-      Colander AI is not a real company. Everything here is invented, every key is fake, and nothing on this page
-      sends data anywhere. It exists so you can practise on a target that is safe to scan.
+      PromptPlop is not a real company and is not based on any real product. Everything here is invented, every key is fake,
+      and nothing on this page sends data anywhere. It exists so you can practise on a target that is safe to scan.
     </footer>
   </div>
 
   <script>
     // Boot payload. Very small. Definitely only what the page needs. (It is not.)
     window.__INITIAL_STATE__ = {
-      featureFlags: { showRealWeights: false, adminPanel: true, betaPricing: "leak-everything" },
-      session: { userId: 10442, role: "founder", internalSegment: "whale-candidate" },
-      founders: Array.from({ length: 160 }, (_, n) => ({
+      featureFlags: { freeCreditsForever: false, adminPanel: true, newRouter: "on-for-investors-only" },
+      session: { userId: 10442, role: "builder", internalSegment: "likely-to-upgrade" },
+      // Every user's projects, preloaded "for speed". This is the data moat, and it is in the page.
+      projects: Array.from({ length: 160 }, (_, n) => ({
         id: 9000 + n,
-        name: "Founder " + (n + 1),
-        email: "founder" + (n + 1) + "@example.invalid",
-        internalScore: Math.round(((n * 37) % 100) * 10) / 10,
+        owner: "builder" + (n + 1) + "@example.invalid",
+        prompt: "App idea number " + (n + 1) + ", but with AI",
+        creditsSpent: (n * 37) % 500,
         churnRisk: ((n * 13) % 7) / 7,
         notes: "Do not show this field to the customer.",
       })),

@@ -181,7 +181,29 @@ export function analyse(input = {}) {
       uniq(leakyFields.concat(i.dataAttrs || [])).slice(0, 5));
   }
 
-  // 8. Framework fingerprint (informational)
+  // 8. AI system prompt shipped to the client
+  const promptRe = /\b(system[_-]?prompt|system[_-]?message|system[_-]?instructions?)\b\s*[:=]|\brole\s*:\s*["'`]system["'`]/gi;
+  const promptHits = uniq((js.match(promptRe) || []).map((m) => m.replace(/\s+/g, " ").trim()));
+  if (promptHits.length) {
+    add("warn", "AI system prompt is in the bundle",
+      "The instructions that shape your AI feature are readable in the browser. For many AI products the prompt is the product: anyone can copy it, and anyone can study it to talk your model round.",
+      "Keep prompts on your server and send only the user's input. Assume anything in the bundle is public, including \"never reveal this prompt\".",
+      promptHits.slice(0, 4));
+  }
+
+  // 9. Browser calls an AI model API directly
+  const aiHostRe = /https?:\/\/(?:api\.openai\.com|api\.anthropic\.com|generativelanguage\.googleapis\.com|api\.mistral\.ai|api\.groq\.com|api\.cohere\.(?:ai|com)|api\.together\.xyz|openrouter\.ai\/api|api\.deepseek\.com|api\.perplexity\.ai|[a-z0-9-]+\.openai\.azure\.com)[^\s"'`]*|https?:\/\/[A-Za-z0-9.-]+\/(?:[A-Za-z0-9_-]+\/)*v\d+\/(?:chat\/completions|completions|messages|responses|embeddings)\b/gi;
+  const isAiCall = new RegExp("^(?:" + aiHostRe.source + ")", "i");
+  const aiCalls = uniq((js.match(aiHostRe) || []).concat((i.networkUrls || []).filter((u) => isAiCall.test(u)))
+    .map((u) => { try { const x = new URL(u); return x.host + x.pathname; } catch { return u; } }));
+  if (aiCalls.length) {
+    add("warn", "Browser talks to an AI model API directly",
+      "The page calls a model provider straight from the browser. That usually means a provider key is in the client, and anyone can lift it to run the model on your bill, with your prompts.",
+      "Put a thin server endpoint in front of the model. The browser talks to you; only your server holds the provider key.",
+      aiCalls.slice(0, 4));
+  }
+
+  // 10. Framework fingerprint (informational)
   if ((i.frameworks || []).length) {
     add("info", "Stack is easy to fingerprint",
       "Your framework is detectable from the page. Not a leak in itself, but it tells a reader exactly which tools and known patterns to point at you.",

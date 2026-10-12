@@ -55,9 +55,9 @@
     <section class="scan wrap" id="scan" aria-labelledby="scan-title">
       <div class="section-head">
         <p class="eyebrow">Live demo</p>
-        <h2 id="scan-title">Meet the patient: Colander AI</h2>
-        <p>A fake startup we built to leak on purpose. Its secret scoring algorithm is in your browser, its source maps shipped on a Tuesday,
-          and its API key has been in the bundle since 2019. Press the button and the real Diarea engine examines it, right here, in this tab.</p>
+        <h2 id="scan-title">Meet the patient: PromptPlop</h2>
+        <p>A fake AI app builder we made to leak on purpose: describe an app, it plops one out. Its "never reveal this prompt" system prompt is in the bundle,
+          its model-routing formula is in your browser, and it calls the model straight from the page. Press the button and the real Diarea engine examines it, right here, in this tab.</p>
       </div>
 
       <div class="scan-grid">
@@ -67,7 +67,7 @@
             <code>kriszwart.github.io/diarea/demo/</code>
           </div>
           <div class="browser-view">
-            <iframe id="demo-frame" src="demo/" title="Colander AI, the deliberately leaky demo site" tabindex="-1"></iframe>
+            <iframe id="demo-frame" src="demo/" title="PromptPlop, the deliberately leaky demo site" tabindex="-1"></iframe>
           </div>
           <figcaption>Everything here is invented. Every key is fake. Nothing phones home. <a href="demo/">Open it full size</a>.</figcaption>
         </figure>
@@ -98,13 +98,13 @@
       <div class="section-head">
         <p class="eyebrow">The Leak Score</p>
         <h2 id="bands-title">Four stages of grief</h2>
-        <p>Eight checks roll up into one score from 0 to 100. Critical findings hurt most. Lower is better, which is the opposite of everything else you measure.</p>
+        <p>Ten checks roll up into one score from 0 to 100. Critical findings hurt most. Lower is better, which is the opposite of everything else you measure.</p>
       </div>
       <ol class="band-cards">
         <li class="band-card sealed"><span class="range">0 to 14</span><h3>Sealed</h3><p>Tight. An agent would come away with very little. Frame it.</p></li>
         <li class="band-card seeping"><span class="range">15 to 39</span><h3>Seeping</h3><p>A few things are showing. Worth a wipe-down before the weekend.</p></li>
         <li class="band-card leaking"><span class="range">40 to 69</span><h3>Leaking</h3><p>Your logic and data are readable from the browser. Cancel the offsite.</p></li>
-        <li class="band-card gushing"><span class="range">70 to 100</span><h3>Gushing</h3><p>Most of how this works is sitting in the open. Colander AI lives here.</p></li>
+        <li class="band-card gushing"><span class="range">70 to 100</span><h3>Gushing</h3><p>Most of how this works is sitting in the open. PromptPlop lives here.</p></li>
       </ol>
     </section>
 
@@ -112,7 +112,7 @@
     <section class="checks wrap" aria-labelledby="checks-title">
       <div class="section-head">
         <p class="eyebrow">What it sniffs out</p>
-        <h2 id="checks-title">Eight things an agent loves to find</h2>
+        <h2 id="checks-title">Ten things an agent loves to find</h2>
       </div>
       <ul class="check-grid">
         <li><b>Source maps in production</b><span>Your original source, comments and all. Gift-wrapped.</span></li>
@@ -121,6 +121,8 @@
         <li><b>Fat hydration payloads</b><span>Boot blobs carrying ids, flags and fields nobody sees on screen.</span></li>
         <li><b>Readable bundles</b><span>Un-minified code with the TODOs still attached.</span></li>
         <li><b>A self-mapping API</b><span>Every endpoint listed in the bundle. GraphQL introspection left on.</span></li>
+        <li><b>Your AI system prompt</b><span>The instructions behind your AI feature, readable by anyone. "Never reveal this prompt" included.</span></li>
+        <li><b>Direct AI API calls</b><span>The browser talking to a model provider itself, which usually means the key is in there too.</span></li>
         <li><b>Chatty hidden fields</b><span>Hidden inputs and data attributes holding prices, roles and flags.</span></li>
         <li><b>A stack fingerprint</b><span>Not a leak alone, but it tells a reader which known tricks to try.</span></li>
       </ul>
@@ -176,6 +178,27 @@ npx diarea scan https://your-site.com --fail-on 40</code></pre><button class="co
       </div>
     </section>
 
+    <!-- Moats -->
+    <section class="moats wrap" id="moats" aria-labelledby="moats-title">
+      <div class="section-head">
+        <p class="eyebrow">Then build what cannot be copied</p>
+        <h2 id="moats-title">What a clone can't copy</h2>
+        <p>Here is the uncomfortable truth: code was never the moat. An agent can rebuild anything it can see.
+          Diarea makes sure it sees as little as possible. These are the things it could never take anyway.</p>
+      </div>
+      <ol class="moat-grid">
+        <li><span class="moat-n">01</span><h3>Data that stays home</h3>
+          <p>Your datasets, your own trained models, the live data your users create. A perfect clone of your interface without your database is a very pretty empty box.</p>
+          <p class="moat-link">This is the one Diarea guards. Every check is about keeping it off the client.</p></li>
+        <li><span class="moat-n">02</span><h3>The people in it</h3>
+          <p>Users, community, the workflows whole teams have built around you. An agent can copy your app. It cannot copy everyone who uses it, or make them move.</p></li>
+        <li><span class="moat-n">03</span><h3>Trust</h3>
+          <p>Brand, service and a reputation people choose on purpose. When features become a commodity, trust is the thing a copycat has to start from zero.</p></li>
+        <li><span class="moat-n">04</span><h3>The physical world</h3>
+          <p>Hardware, sensors, logistics, real-world integrations. Software that reads your frontend cannot spin up a supply chain.</p></li>
+      </ol>
+    </section>
+
     <!-- FAQ -->
     <section class="faq wrap" id="faq" aria-labelledby="faq-title">
       <div class="section-head">
@@ -190,7 +213,7 @@ npx diarea scan https://your-site.com --fail-on 40</code></pre><button class="co
       <details>
         <summary>Can I scan someone else's site?</summary>
         <p>Please do not. Diarea is defensive: scan sites you own or are authorised to test. It reads what any browser could read,
-          never exploits anything, and hides secret values even in its own reports. If you want a safe target, Colander AI is all yours.</p>
+          never exploits anything, and hides secret values even in its own reports. If you want a safe target, PromptPlop is all yours.</p>
       </details>
       <details>
         <summary>Does anything leave my machine?</summary>
@@ -204,7 +227,7 @@ npx diarea scan https://your-site.com --fail-on 40</code></pre><button class="co
       </details>
       <details>
         <summary>How do I add a check?</summary>
-        <p>Every rule lives in one file, <code>src/checks.js</code>. Add yours, give Colander AI a leak that trips it, and open a pull request.
+        <p>Every rule lives in one file, <code>src/checks.js</code>. Add yours, give PromptPlop a leak that trips it, and open a pull request.
           The <a href="https://github.com/kriszwart/diarea/blob/main/CONTRIBUTING.md">contributing guide</a> has the details.</p>
       </details>
     </section>
@@ -221,7 +244,7 @@ npx diarea scan https://your-site.com --fail-on 40</code></pre><button class="co
 
   <footer class="footer wrap">
     <p>Diarea is open source under the <a href="https://github.com/kriszwart/diarea/blob/main/LICENSE">MIT licence</a>. Made by Kris Zwart, ZwartifyDesign. Built in Kuala Lumpur.</p>
-    <p>Colander AI is not a real company. No startups were harmed.</p>
+    <p>PromptPlop is not a real company or based on one. No startups were harmed.</p>
   </footer>
 
   <script type="module" src="landing.js"></script>

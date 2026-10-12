@@ -1,5 +1,5 @@
 /* Landing page demo. Runs the real engine (lib/ is copied from src/ by
- * scripts/build.js) against Colander AI in the iframe beside it. It only ever
+ * scripts/build.js) against PromptPlop in the iframe beside it. It only ever
  * scans its own demo page, and nothing is sent anywhere.
  */
 import { analyse, scoreOf, bandOf, SEV_ORDER } from "./lib/checks.js";

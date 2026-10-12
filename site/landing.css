@@ -236,6 +236,16 @@ section { scroll-margin-top: 16px; }
 .honest-card li { padding: 10px 14px; border: 1px solid #3a342c; border-radius: 10px; color: #e7e1d4; font-size: 15px; }
 .honest-card li::before { content: "✓ "; color: #4cc48c; font-weight: 800; }
 
+/* Moats */
+.moats { padding-top: 24px; padding-bottom: 72px; }
+.moat-grid { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.moat-grid li { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; display: grid; gap: 8px; align-content: start; }
+.moat-grid li:first-child { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.moat-n { font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+.moat-grid h3 { font-size: 21px; }
+.moat-grid p { margin: 0; color: var(--ink-soft); font-size: 15px; }
+.moat-grid .moat-link { color: var(--brown); font-weight: 600; font-size: 14px; }
+
 /* FAQ */
 .faq { padding-top: 24px; padding-bottom: 72px; }
 .faq details { max-width: 860px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 10px; }

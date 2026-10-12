@@ -36,6 +36,8 @@ const expected = [
   ["readable bundle", /shipped code is readable/i],
   ["API endpoints", /api endpoints/i],
   ["hidden fields", /hidden fields/i],
+  ["AI system prompt", /system prompt/i],
+  ["direct AI API call", /ai model api/i],
   ["stack fingerprint", /fingerprint/i],
 ];
 
@@ -65,7 +67,7 @@ const demoDir = path.join(here, "..", "site", "demo");
 const demo = analyse(collectStatic(fs.readFileSync(path.join(demoDir, "index.html"), "utf8"),
   "file:///demo/index.html", { root: demoDir }));
 const demoMissing = expected.filter(([, re]) => !demo.findings.some((f) => re.test(f.title))).map(([n]) => n);
-check(demoMissing.length === 0, "demo site fires all eight checks" + (demoMissing.length ? ` (missing: ${demoMissing.join(", ")})` : ""));
+check(demoMissing.length === 0, `demo site fires all ${expected.length} checks` + (demoMissing.length ? ` (missing: ${demoMissing.join(", ")})` : ""));
 check(bandOf(scoreOf(demo.findings)).label === "Gushing", "demo site scores Gushing");
 
 const escape = collectStatic(

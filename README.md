@@ -13,9 +13,9 @@ An AI agent can now read your frontend and rebuild your product. Diarea reads it
 ![local only](https://img.shields.io/badge/data-stays_local-38c884?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-ededea?style=flat-square)
 
-**[Website and live demo](https://kriszwart.github.io/diarea/)** · [Try it](#try-it-in-30-seconds) · [What it finds](#what-it-finds) · [Extension](#install-the-extension) · [CLI](#cli) · [GitHub Action](#github-action) · [The honest bit](#the-honest-bit) · [Roadmap](#roadmap)
+**[Website and live demo](https://kriszwart.github.io/diarea/)** · [Try it](#try-it-in-30-seconds) · [What it finds](#what-it-finds) · [Extension](#install-the-extension) · [CLI](#cli) · [GitHub Action](#github-action) · [The honest bit](#the-honest-bit) · [What a clone can't copy](#what-a-clone-cant-copy) · [Roadmap](#roadmap)
 
-<img src="docs/assets/scan.svg" alt="Diarea scanning the deliberately leaky demo site and scoring it 94 out of 100, Gushing" width="760">
+<img src="docs/assets/scan.svg" alt="Diarea scanning the deliberately leaky demo site and scoring it Gushing, Gushing" width="760">
 
 </div>
 
@@ -23,7 +23,7 @@ An AI agent can now read your frontend and rebuild your product. Diarea reads it
 
 ## Try it in 30 seconds
 
-We built a fake startup that leaks everything, so you can watch Diarea work without pointing it at anything that matters. [Watch it get diagnosed on the website](https://kriszwart.github.io/diarea/#scan), or meet [Colander AI](https://kriszwart.github.io/diarea/demo/) directly: the founder-scoring engine that holds nothing back. Its secret algorithm is in your browser. Its source maps shipped on a Tuesday. Its API key has been in the bundle since 2019.
+We built a fake AI app builder that leaks everything, so you can watch Diarea work without pointing it at anything that matters. [Watch it get diagnosed on the website](https://kriszwart.github.io/diarea/#scan), or meet [PromptPlop](https://kriszwart.github.io/diarea/demo/) directly: describe an app and it plops one out. Its "never reveal this prompt" system prompt is in the bundle. Its model-routing formula is in your browser. It calls the model straight from the page.
 
 ```
 git clone https://github.com/kriszwart/diarea && cd diarea && npm install
@@ -44,7 +44,7 @@ So Diarea does the useful thing instead. It reads **your own** site the way REA 
 
 ## What it finds
 
-Eight checks, one shared engine (`src/checks.js`), the same verdict in the extension, the CLI and CI:
+Ten checks, one shared engine (`src/checks.js`), the same verdict in the extension, the CLI and CI:
 
 | # | Leak | Why it matters |
 |---|------|----------------|
@@ -54,8 +54,10 @@ Eight checks, one shared engine (`src/checks.js`), the same verdict in the exten
 | 04 | **Fat hydration payloads** | Boot blobs carrying ids, flags and fields the user never sees. |
 | 05 | **Readable code** | Un-minified bundles with developer notes still attached. |
 | 06 | **A self-mapping API** | Every endpoint listed in the bundle or seen on the wire. GraphQL introspection left on. |
-| 07 | **Chatty hidden fields** | Hidden inputs and `data-` attributes carrying ids, prices, roles and flags. |
-| 08 | **A stack fingerprint** | Not a leak by itself, but it tells a reader exactly which known patterns to try. |
+| 07 | **Your AI system prompt** | The instructions behind your AI feature, readable by anyone. "Never reveal this prompt" included. |
+| 08 | **Direct AI API calls** | The browser talking to a model provider itself, which usually means the provider key is in there too. |
+| 09 | **Chatty hidden fields** | Hidden inputs and `data-` attributes carrying ids, prices, roles and flags. |
+| 10 | **A stack fingerprint** | Not a leak by itself, but it tells a reader exactly which known patterns to try. |
 
 Each finding comes with what a reader sees and a one-line fix (we call it "flush it"). Found secrets are never printed in full: you get a short prefix and the length, which is enough to find it and useless to anyone reading over your shoulder.
 
@@ -147,7 +149,14 @@ Diarea surfaces exposure. The durable protections are server-side, and no browse
 - **Guard the API.** Auth, per-account quotas, rate limits, anomaly detection on bulk probing.
 - **Isolate tenant data** and block unapproved bulk exports.
 
-Your moat was never hard-to-copy software. It is that the things worth copying never reach the browser, and that people trust your result enough to make a clone start from zero.
+## What a clone can't copy
+
+Code was never the moat. An agent can rebuild anything it can see, so Diarea makes sure it sees as little as possible. Then build on the things it could never take anyway:
+
+1. **Data that stays home.** Your datasets, your own trained models, the live data your users create. A perfect clone of your interface without your database is a very pretty empty box. This is the one Diarea guards: every check is about keeping it off the client.
+2. **The people in it.** Users, community, the workflows whole teams have built around you. An agent can copy your app. It cannot copy everyone who uses it, or make them move.
+3. **Trust.** Brand, service and a reputation people choose on purpose. When features become a commodity, trust is the thing a copycat has to start from zero.
+4. **The physical world.** Hardware, sensors, logistics, real-world integrations. Software that reads your frontend cannot spin up a supply chain.
 
 ## The Containment Score
 
