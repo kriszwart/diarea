@@ -70,19 +70,24 @@ export function analyse(input = {}) {
   }
 
   // 2. Secrets in client code or markup
+  // Each token must start a word (so "task-item-..." is not an "sk-" key), and
+  // keys that are random strings must look random: digits plus both cases.
+  const B = "(?<![A-Za-z0-9_-])";
+  const looksRandom = (v) => /[0-9]/.test(v) && /[A-Z]/.test(v) && /[a-z]/.test(v);
   const secretRules = [
-    { re: /sk_live_[0-9a-zA-Z]{8,}/g, label: "Stripe secret key", sev: "crit" },
-    { re: /sk-(?:proj-)?[A-Za-z0-9_-]{20,}/g, label: "OpenAI-style secret key", sev: "crit" },
-    { re: /AKIA[0-9A-Z]{16}/g, label: "AWS access key id", sev: "crit" },
-    { re: /AIza[0-9A-Za-z\-_]{35}/g, label: "Google API key", sev: "warn" },
-    { re: /xox[baprs]-[0-9A-Za-z-]{10,}/g, label: "Slack token", sev: "crit" },
-    { re: /gh[pousr]_[A-Za-z0-9]{20,}/g, label: "GitHub token", sev: "crit" },
-    { re: /eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{6,}/g, label: "JWT / bearer token", sev: "warn" },
-    { re: /sk_test_[0-9a-zA-Z]{8,}/g, label: "Stripe test secret key", sev: "warn" },
+    { re: new RegExp(B + "sk_live_[0-9a-zA-Z]{16,}", "g"), label: "Stripe secret key", sev: "crit", random: true },
+    { re: new RegExp(B + "sk-(?:proj-|svcacct-|admin-)?[A-Za-z0-9_-]{32,}", "g"), label: "OpenAI-style secret key", sev: "crit", random: true },
+    { re: new RegExp(B + "AKIA[0-9A-Z]{16}(?![0-9A-Z])", "g"), label: "AWS access key id", sev: "crit" },
+    { re: new RegExp(B + "AIza[0-9A-Za-z_-]{35}", "g"), label: "Google API key", sev: "warn" },
+    { re: new RegExp(B + "xox[baprs]-[0-9A-Za-z-]{10,}", "g"), label: "Slack token", sev: "crit" },
+    { re: new RegExp(B + "gh[pousr]_[A-Za-z0-9]{30,}", "g"), label: "GitHub token", sev: "crit", random: true },
+    { re: new RegExp(B + "eyJ[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{6,}", "g"), label: "JWT / bearer token", sev: "warn" },
+    { re: new RegExp(B + "sk_test_[0-9a-zA-Z]{16,}", "g"), label: "Stripe test secret key", sev: "warn", random: true },
   ];
   const secretHits = [];
   for (const rule of secretRules) {
     for (const h of uniq(haystack.match(rule.re) || [])) {
+      if (rule.random && !looksRandom(h.replace(/^(sk_live_|sk_test_|sk-(?:proj-|svcacct-|admin-)?|gh[pousr]_)/, ""))) continue;
       secretHits.push({ sev: rule.sev, label: rule.label, value: h });
     }
   }

@@ -29,10 +29,14 @@ export async function collectLive(url, opts = {}) {
   const page = await context.newPage();
 
   const networkUrls = new Set();
+  // Only API traffic counts towards the endpoint map, not the page's own
+  // documents, scripts, styles, fonts and images.
+  const API_TYPES = new Set(["fetch", "xhr", "websocket", "eventsource"]);
   page.on("request", (req) => {
     try {
+      if (!API_TYPES.has(req.resourceType())) return;
       const u = new URL(req.url());
-      if (/^https?:$/.test(u.protocol)) networkUrls.add(u.origin + u.pathname);
+      if (/^(https?|wss?):$/.test(u.protocol)) networkUrls.add(u.origin + u.pathname);
     } catch {}
   });
 

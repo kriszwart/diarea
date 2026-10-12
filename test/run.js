@@ -64,6 +64,15 @@ check(Object.values(FAKE_SECRETS).every((v) => !report.includes(v.slice(0, 12)))
 const clean = analyse(collectStatic(fixture("clean.html"), "file:///clean.html"));
 check(scoreOf(clean.findings) === 0, "clean fixture scores 0");
 
+// Regression from the first real scan (revoluaition.com): words ending in
+// "sk-" (task-, mask-, risk-) were reported as OpenAI keys.
+const secretTitles = (js) => analyse({ inlineScripts: [js] }).findings.filter((f) => /secret/.test(f.title));
+check(secretTitles('const a = "task-item-description-text-and-more"; const b = "mask-image-linear-gradient-to-bottom"; ' +
+  'const c = "risk-indicator-badge-large-and-loud"; const d = "desk_live_ABCdef1234567890ABCD";').length === 0,
+  "ordinary words are not mistaken for keys");
+const realShaped = "sk-" + "Ab3dE5gH7jK9mN1pQ3sT5vX7zA9cE1gI3kM5oQ7sU9wY1aC";
+check(secretTitles(`const k = "${realShaped}";`).length === 1, "a real-shaped key is still caught");
+
 console.log("Static file scans:");
 const demoDir = path.join(here, "..", "site", "demo");
 const demo = analyse(collectStatic(fs.readFileSync(path.join(demoDir, "index.html"), "utf8"),
