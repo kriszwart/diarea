@@ -155,3 +155,6 @@ vite.config.ts.timestamp-*
 extension/lib/
 site/lib/
 site/assets/
+
+# Store upload zip (npm run package:extension)
+dist/

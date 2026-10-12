@@ -2,6 +2,10 @@
 
 All notable changes to Diarea. Versions follow [semantic versioning](https://semver.org/); while it is 0.x, a minor bump can add checks that change scores.
 
+## Unreleased
+
+- **Chrome Web Store kit.** Extension icons from the mascot, a manifest with icons and a homepage, `npm run package:extension` for the upload zip, a privacy policy page on the site, and `docs/store/` with the listing copy, permission justifications, three screenshots of the real popup and both promo tiles.
+
 ## 0.3.0
 
 - **Leak Score on pull requests.** The GitHub Action posts the score as one comment and updates it on every push, with how it moved since the last one. New inputs `comment` (on by default), `comment-key` and `github-token`; the job needs `pull-requests: write`. It never fails the build: forked pull requests get a warning instead.

@@ -27,7 +27,9 @@
     "build:extension": "node scripts/build.js extension",
     "build:site": "node scripts/build.js site",
     "scan": "node bin/diarea.js scan",
-    "test": "node test/run.js"
+    "test": "node test/run.js",
+    "package:extension": "node scripts/package-extension.js",
+    "store:assets": "node scripts/render-store-assets.js"
   },
   "keywords": [
     "security",

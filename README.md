@@ -80,6 +80,8 @@ Each finding comes with what a reader sees and a one-line fix (we call it "flush
 4. Click **Load unpacked** and select the `extension/` folder.
 5. Pin the icon, open one of your own deployed sites, and click it.
 
+To get a zip for the Chrome Web Store, run `npm run package:extension` (it lands in `dist/`). The listing copy, privacy answers and store images live in [`docs/store/`](docs/store/listing.md), and the privacy policy is at [kriszwart.github.io/diarea/privacy.html](https://kriszwart.github.io/diarea/privacy.html).
+
 It auto-scans on open. Use **Re-scan** after a deploy. Point it at your own staging site first and watch the score.
 
 ## CLI

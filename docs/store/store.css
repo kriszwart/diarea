@@ -1,0 +1,29 @@
+/* Shared styles for the Chrome Web Store screenshots and promo tiles. */
+* { box-sizing: border-box; }
+html, body { margin: 0; overflow: hidden; }
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "DejaVu Sans", sans-serif; color: #1d1b16;
+  background: radial-gradient(circle at 15% 20%, #fff4e6, #f3e7d6 55%, #ead8c2);
+}
+.stage { width: 1280px; height: 800px; display: grid; grid-template-columns: 360px 1fr; gap: 36px; padding: 56px 48px 56px 56px; align-items: center; }
+.copy h1 { font-size: 46px; line-height: 1.05; letter-spacing: -0.03em; margin: 18px 0 16px; }
+.copy h1 em { font-style: normal; color: #d9501f; }
+.copy p { font-size: 20px; line-height: 1.45; color: #5f5a50; margin: 0 0 14px; }
+.copy .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 22px; }
+.copy .logo img { width: 44px; height: 44px; }
+.copy .points { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 8px; font-size: 16px; color: #3a362f; }
+.copy .points li::before { content: "✓ "; color: #23925f; font-weight: 800; }
+
+.browser { position: relative; height: 688px; background: #fff; border-radius: 14px; box-shadow: 0 30px 60px rgba(60, 35, 15, 0.22), 0 2px 6px rgba(60, 35, 15, 0.1); overflow: hidden; }
+.bar { height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: #efe8dc; border-bottom: 1px solid #e0d6c6; }
+.bar .dot { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
+.bar .dot:nth-child(2) { background: #febc2e; } .bar .dot:nth-child(3) { background: #28c840; }
+.bar .url { flex: 1; margin: 0 12px; background: #fff; border-radius: 8px; padding: 6px 12px; font-size: 13px; color: #6b665c; font-family: ui-monospace, Menlo, monospace; }
+.bar .ext { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: #fbe3d6; box-shadow: inset 0 0 0 2px #d9501f; }
+.bar .ext img { width: 22px; height: 22px; }
+.view { position: absolute; top: 44px; left: 0; right: 0; bottom: 0; overflow: hidden; }
+#tab { border: 0; width: 133.34%; height: 133.34%; transform: scale(0.75); transform-origin: 0 0; background: #fff; }
+#popup {
+  position: absolute; top: 50px; right: 14px; width: 380px; height: 600px; border: 0; border-radius: 12px;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(0, 0, 0, 0.08); background: #fff;
+}

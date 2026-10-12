@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Diarea privacy policy</title>
+  <meta name="description" content="Diarea collects nothing. Scans run in your browser or on your machine, and nothing is sent anywhere." />
+  <link rel="icon" href="assets/mascot.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="landing.css" />
+  <style>
+    .policy { max-width: 760px; padding-top: 24px; padding-bottom: 72px; }
+    .policy h1 { font-size: clamp(34px, 6vw, 52px); margin: 8px 0 12px; }
+    .policy h2 { font-size: 22px; margin: 32px 0 8px; }
+    .policy p, .policy li { color: var(--ink-soft); }
+    .policy .lead { font-size: 20px; color: var(--ink); }
+  </style>
+</head>
+<body>
+  <header class="nav wrap">
+    <a class="logo" href="./" aria-label="Diarea home"><img src="assets/mascot.svg" alt="" width="34" height="34" /><span>Diarea</span></a>
+    <nav aria-label="Main"><a class="nav-gh" href="https://github.com/kriszwart/diarea">GitHub</a></nav>
+  </header>
+  <main class="policy wrap">
+    <p class="eyebrow">Privacy policy · Last updated 12 October 2026</p>
+    <h1>Diarea collects nothing.</h1>
+    <p class="lead">Not your browsing, not the pages you scan, not your findings. There is no account, no server and no analytics. The only thing that leaks here is your frontend, and only to you.</p>
+
+    <h2>The Chrome extension</h2>
+    <ul>
+      <li>It runs only when you click its icon, and only on the tab you are looking at.</li>
+      <li>It reads that page (its scripts, markup and page globals) inside your browser, scores it and shows you the report. The report stays in the popup and disappears when you close it.</li>
+      <li>To read a page's own JavaScript files it may fetch them again from that same website, without your cookies, and check whether a source map file sits beside them. It never contacts any other server, and Diarea has no server of its own.</li>
+      <li>It stores nothing: no history, no settings, no cookies, no local storage.</li>
+      <li>It does not change the page, and it does not sell, share or transfer any data, because it never has any.</li>
+    </ul>
+
+    <h2>Permissions, and why</h2>
+    <ul>
+      <li><b>activeTab</b>: lets Diarea read the current tab, and only after you click the icon. It has no access to any other tab or site.</li>
+      <li><b>scripting</b>: runs the read-only scan inside that tab so it can see what the page exposes.</li>
+    </ul>
+
+    <h2>The CLI, the GitHub Action and this website</h2>
+    <ul>
+      <li>The command-line tool runs on your machine and sends nothing anywhere. The GitHub Action runs in your own GitHub workflow; on pull requests it posts the score as a comment on that pull request, using your workflow's own token.</li>
+      <li>This website sets no cookies and loads nothing from other sites. The one exception is the trailer: if you press play, the video loads from YouTube's privacy-enhanced player, under <a href="https://policies.google.com/privacy">Google's privacy policy</a>.</li>
+    </ul>
+
+    <h2>Secrets</h2>
+    <p>When Diarea finds something that looks like a key or token, it shows only a short prefix and the length, never the full value, in every report it produces.</p>
+
+    <h2>Questions</h2>
+    <p>Diarea is open source, so you can read exactly what it does in the <a href="https://github.com/kriszwart/diarea">source code</a>. For anything else, <a href="https://github.com/kriszwart/diarea/issues">open an issue</a>.</p>
+  </main>
+  <footer class="footer wrap">
+    <p>Diarea is open source under the <a href="https://github.com/kriszwart/diarea/blob/main/LICENSE">MIT licence</a>. Made by Kris Zwart, ZwartifyDesign.</p>
+  </footer>
+</body>
+</html>
