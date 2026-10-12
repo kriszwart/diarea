@@ -1,6 +1,6 @@
 {
   "name": "diarea",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Finds what your frontend leaks before anyone else does: exposed keys, source maps, API maps, AI system prompts and debug globals, scored from Sealed to Gushing. Local and read-only.",
   "author": "Kris Zwart (ZwartifyDesign)",
   "homepage": "https://diarea.tools/",

@@ -7,7 +7,7 @@ import path from "node:path";
 import { analyse, scoreOf, bandOf, SEV_ORDER } from "../src/checks.js";
 import { collectStatic } from "../src/collect-static.js";
 
-const VERSION = "0.3.0";
+const VERSION = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
 const HELP = `
 diarea ${VERSION}  -  frontend leak scanner (local, read-only)

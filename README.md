@@ -149,7 +149,7 @@ Commenting never fails the build: on forked pull requests (read-only token) it l
 
 We dogfood it: every pull request to this repo gets the Leak Score of our own landing page. It scores 11/100, Sealed. The one finding is that `landing.js` is readable, which for an open source site is rather the point.
 
-`@v0` follows the latest 0.x release. Pin to `@v0.3.0` (or a commit SHA) for a fixed version.
+`@v0` follows the latest 0.x release. Pin to `@v0.3.2` (or a commit SHA) for a fixed version.
 
 | Input | Default | |
 |---|---|---|
