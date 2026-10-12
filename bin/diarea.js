@@ -7,7 +7,7 @@ import path from "node:path";
 import { analyse, scoreOf, bandOf, SEV_ORDER } from "../src/checks.js";
 import { collectStatic } from "../src/collect-static.js";
 
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 
 const HELP = `
 diarea ${VERSION}  -  frontend leak scanner (local, read-only)

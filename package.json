@@ -1,7 +1,16 @@
 {
   "name": "diarea",
-  "version": "0.2.0",
-  "description": "See what an agent could reverse-engineer from your frontend. A local, read-only leak scanner. The defensive counterpart to REA.",
+  "version": "0.3.0",
+  "description": "Finds what your frontend leaks before anyone else does: exposed keys, source maps, API maps, AI system prompts and debug globals, scored from Sealed to Gushing. Local and read-only.",
+  "author": "Kris Zwart (ZwartifyDesign)",
+  "homepage": "https://kriszwart.github.io/diarea/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kriszwart/diarea.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kriszwart/diarea/issues"
+  },
   "type": "module",
   "bin": {
     "diarea": "bin/diarea.js"
@@ -10,6 +19,7 @@
     "bin",
     "src",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
@@ -20,13 +30,17 @@
     "test": "node test/run.js"
   },
   "keywords": [
-    "reverse-engineering",
     "security",
     "frontend",
-    "source-maps",
     "leak-scanner",
-    "chrome-extension",
-    "cli"
+    "source-maps",
+    "secrets",
+    "reverse-engineering",
+    "ai",
+    "llm",
+    "cli",
+    "github-action",
+    "chrome-extension"
   ],
   "engines": {
     "node": ">=20"
