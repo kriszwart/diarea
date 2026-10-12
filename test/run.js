@@ -21,6 +21,9 @@ const fixture = (name) => fs.readFileSync(path.join(here, "fixtures", name), "ut
 const html = plant(fixture("leaky.html"));
 
 const input = collectStatic(html, "file:///leaky.html");
+// The static collector never fetches external scripts, so hand the engine a
+// same-origin bundle directly, as the live collector and the extension would.
+input.bundles = [{ url: "file:///_next/static/chunks/checkout.js", body: fixture("readable-bundle.js") }];
 const result = analyse(input);
 const score = scoreOf(result.findings);
 const band = bandOf(score);
@@ -30,6 +33,7 @@ const expected = [
   ["secrets", /secret/i],
   ["client-side logic", /scoring or business logic/i],
   ["hydration payload", /hydration/i],
+  ["readable bundle", /shipped code is readable/i],
   ["API endpoints", /api endpoints/i],
   ["hidden fields", /hidden fields/i],
   ["stack fingerprint", /fingerprint/i],
