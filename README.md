@@ -1,21 +1,36 @@
 <div align="center">
 
-# 💩 Diarea
+<img src="docs/assets/mascot.svg" width="120" alt="The Diarea mascot, sweating because it has found a leak">
 
-### The frontend leak scanner. Agent versus agent.
+# Diarea
 
-**An AI agent can now read your frontend and rebuild your product. Diarea finds what your frontend leaks (exposed keys, source maps, API maps and debug globals) so there is nothing left worth taking. Chrome extension and CLI.**
+### Finds what your frontend leaks. Before anyone else does.
 
+An AI agent can now read your frontend and rebuild your product. Diarea reads it first and tells you what is coming out: exposed keys, source maps, API maps, debug globals and the logic you thought was private. Then it scores the damage, from **Sealed** to **Gushing**.
+
+[![CI](https://github.com/kriszwart/diarea/actions/workflows/ci.yml/badge.svg)](https://github.com/kriszwart/diarea/actions/workflows/ci.yml)
 ![status](https://img.shields.io/badge/status-prototype-f5a623?style=flat-square)
-![platform](https://img.shields.io/badge/Chrome-MV3-e0218a?style=flat-square)
 ![local only](https://img.shields.io/badge/data-stays_local-38c884?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-ededea?style=flat-square)
 
-[What it finds](#what-it-finds) · [Install](#install-load-unpacked) · [The honest bit](#the-honest-bit) · [GitHub Action](#github-action) · [Containment Score](#the-containment-score) · [Roadmap](#roadmap)
+[Try it](#try-it-in-30-seconds) · [What it finds](#what-it-finds) · [Extension](#install-the-extension) · [CLI](#cli) · [GitHub Action](#github-action) · [The honest bit](#the-honest-bit) · [Roadmap](#roadmap)
+
+<img src="docs/assets/scan.svg" alt="Diarea scanning the deliberately leaky demo site and scoring it 94 out of 100, Gushing" width="760">
 
 </div>
 
 ---
+
+## Try it in 30 seconds
+
+We built a fake startup that leaks everything, so you can watch Diarea work without pointing it at anything that matters. Meet [Colander AI](https://kriszwart.github.io/diarea/demo/), the founder-scoring engine that holds nothing back. Its secret algorithm is in your browser. Its source maps shipped on a Tuesday. Its API key has been in the bundle since 2019.
+
+```
+git clone https://github.com/kriszwart/diarea && cd diarea && npm install
+node bin/diarea.js scan site/demo/index.html
+```
+
+That is the static scan: no browser, no network, just the files. Every key on the demo is fake and nothing on it phones home.
 
 ## Why this exists
 
@@ -29,7 +44,7 @@ So Diarea does the useful thing instead. It reads **your own** site the way REA 
 
 ## What it finds
 
-Running on the active tab, locally, it sniffs out the six things an agent loves:
+Eight checks, one shared engine (`src/checks.js`), the same verdict in the extension, the CLI and CI:
 
 | # | Leak | Why it matters |
 |---|------|----------------|
@@ -38,11 +53,20 @@ Running on the active tab, locally, it sniffs out the six things an agent loves:
 | 03 | **Client-side scoring or logic** | Weightings, thresholds and rules running in the browser. The part that makes you different. |
 | 04 | **Fat hydration payloads** | Boot blobs carrying ids, flags and fields the user never sees. |
 | 05 | **Readable code** | Un-minified bundles with developer notes still attached. |
-| 06 | **A self-mapping API** | Every endpoint listed in the bundle. GraphQL introspection left on. |
+| 06 | **A self-mapping API** | Every endpoint listed in the bundle or seen on the wire. GraphQL introspection left on. |
+| 07 | **Chatty hidden fields** | Hidden inputs and `data-` attributes carrying ids, prices, roles and flags. |
+| 08 | **A stack fingerprint** | Not a leak by itself, but it tells a reader exactly which known patterns to try. |
 
-Plus hidden fields that carry meaning and a stack fingerprint. Each finding comes with what a reader sees and a one-line fix. The overall **Leak Score** runs from Sealed to Gushing.
+Each finding comes with what a reader sees and a one-line fix (we call it "flush it"). Found secrets are never printed in full: you get a short prefix and the length, which is enough to find it and useless to anyone reading over your shoulder.
 
-## Install (load unpacked)
+| Leak Score | Band | Translation |
+|---|---|---|
+| 0 to 14 | **Sealed** | Tight. An agent would come away with very little. |
+| 15 to 39 | **Seeping** | A few things are showing. Worth a wipe-down. |
+| 40 to 69 | **Leaking** | Your logic and data are readable from the browser. |
+| 70 to 100 | **Gushing** | Most of how this works is sitting in the open. |
+
+## Install the extension
 
 1. Clone this repo and run `npm install && npm run build:extension`. The build copies the shared engine (`src/checks.js`) into `extension/lib/`.
 2. Open `chrome://extensions` in Chrome or Edge.
@@ -70,7 +94,7 @@ npx diarea scan https://your-site.com --fail-on 40
 
 Two modes:
 
-- **Static (jsdom).** Point it at a `.html` file, stdin (`-`), or use `--html`. No browser, fast, safe on untrusted markup. Reads inline scripts, hydration blobs and the DOM. It will not see data that only appears after client-side rendering.
+- **Static (jsdom).** Point it at a `.html` file, stdin (`-`), or use `--html`. No browser, fast, safe on untrusted markup (scripts are never run). Reads inline scripts, hydration blobs and the DOM, plus the page's local `<script src>` files and any `.map` beside them, so `dist/index.html` is judged on what it actually ships. It never reads outside that file's folder and never fetches anything. It will not see data that only appears after client-side rendering.
 - **Live (Playwright).** Point it at a URL. Loads the real page in headless Chromium, so it sees page globals, fetched bundles and the live network map. One-time setup:
 
 ```

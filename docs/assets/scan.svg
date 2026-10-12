@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="578" viewBox="0 0 860 578" role="img" aria-label="Diarea scanning a deliberately leaky demo site and scoring it Gushing">
+<style>
+text{font:14px ui-monospace,SFMono-Regular,Menlo,Consolas,"DejaVu Sans Mono",monospace;fill:#d9d4c7}
+.cmd{fill:#f3efe6}.head{fill:#e58cff;font-weight:700}.title{fill:#f3efe6;font-weight:700}
+.crit{fill:#ff6b6b}.warn{fill:#f5b041}.info{fill:#5fd0e0}.ev,.foot{fill:#8a857a}
+.l0{animation:k0 14s steps(1,end) infinite}@keyframes k0{0%,4.29%{opacity:0}4.30%,96%{opacity:1}100%{opacity:0}}
+.l1{animation:k1 14s steps(1,end) infinite}@keyframes k1{0%,11.43%{opacity:0}11.44%,96%{opacity:1}100%{opacity:0}}
+.l2{animation:k2 14s steps(1,end) infinite}@keyframes k2{0%,12.71%{opacity:0}12.72%,96%{opacity:1}100%{opacity:0}}
+.l3{animation:k3 14s steps(1,end) infinite}@keyframes k3{0%,14.00%{opacity:0}14.01%,96%{opacity:1}100%{opacity:0}}
+.l4{animation:k4 14s steps(1,end) infinite}@keyframes k4{0%,15.29%{opacity:0}15.30%,96%{opacity:1}100%{opacity:0}}
+.l5{animation:k5 14s steps(1,end) infinite}@keyframes k5{0%,16.57%{opacity:0}16.58%,96%{opacity:1}100%{opacity:0}}
+.l6{animation:k6 14s steps(1,end) infinite}@keyframes k6{0%,17.86%{opacity:0}17.87%,96%{opacity:1}100%{opacity:0}}
+.l7{animation:k7 14s steps(1,end) infinite}@keyframes k7{0%,19.14%{opacity:0}19.15%,96%{opacity:1}100%{opacity:0}}
+.l8{animation:k8 14s steps(1,end) infinite}@keyframes k8{0%,20.43%{opacity:0}20.44%,96%{opacity:1}100%{opacity:0}}
+.l9{animation:k9 14s steps(1,end) infinite}@keyframes k9{0%,21.71%{opacity:0}21.72%,96%{opacity:1}100%{opacity:0}}
+.l10{animation:k10 14s steps(1,end) infinite}@keyframes k10{0%,23.00%{opacity:0}23.01%,96%{opacity:1}100%{opacity:0}}
+.l11{animation:k11 14s steps(1,end) infinite}@keyframes k11{0%,24.29%{opacity:0}24.30%,96%{opacity:1}100%{opacity:0}}
+.l12{animation:k12 14s steps(1,end) infinite}@keyframes k12{0%,25.57%{opacity:0}25.58%,96%{opacity:1}100%{opacity:0}}
+.l13{animation:k13 14s steps(1,end) infinite}@keyframes k13{0%,26.86%{opacity:0}26.87%,96%{opacity:1}100%{opacity:0}}
+.l14{animation:k14 14s steps(1,end) infinite}@keyframes k14{0%,28.14%{opacity:0}28.15%,96%{opacity:1}100%{opacity:0}}
+.l15{animation:k15 14s steps(1,end) infinite}@keyframes k15{0%,29.43%{opacity:0}29.44%,96%{opacity:1}100%{opacity:0}}
+.l16{animation:k16 14s steps(1,end) infinite}@keyframes k16{0%,30.71%{opacity:0}30.72%,96%{opacity:1}100%{opacity:0}}
+.l17{animation:k17 14s steps(1,end) infinite}@keyframes k17{0%,32.00%{opacity:0}32.01%,96%{opacity:1}100%{opacity:0}}
+.l18{animation:k18 14s steps(1,end) infinite}@keyframes k18{0%,33.29%{opacity:0}33.30%,96%{opacity:1}100%{opacity:0}}
+.l19{animation:k19 14s steps(1,end) infinite}@keyframes k19{0%,34.57%{opacity:0}34.58%,96%{opacity:1}100%{opacity:0}}
+.l20{animation:k20 14s steps(1,end) infinite}@keyframes k20{0%,35.86%{opacity:0}35.87%,96%{opacity:1}100%{opacity:0}}
+.l21{animation:k21 14s steps(1,end) infinite}@keyframes k21{0%,37.14%{opacity:0}37.15%,96%{opacity:1}100%{opacity:0}}
+.l22{animation:k22 14s steps(1,end) infinite}@keyframes k22{0%,38.43%{opacity:0}38.44%,96%{opacity:1}100%{opacity:0}}
+.l23{animation:k23 14s steps(1,end) infinite}@keyframes k23{0%,39.71%{opacity:0}39.72%,96%{opacity:1}100%{opacity:0}}
+</style>
+<rect width="860" height="578" rx="12" fill="#191714"/>
+<circle cx="22" cy="20" r="6" fill="#ff5f57"/><circle cx="42" cy="20" r="6" fill="#febc2e"/><circle cx="62" cy="20" r="6" fill="#28c840"/>
+<text x="22" y="52" class="l0 cmd" xml:space="preserve">$ npx diarea scan https://kriszwart.github.io/diarea/demo/</text>
+<text x="22" y="73" class="l1 " xml:space="preserve"></text>
+<text x="22" y="94" class="l2 head" xml:space="preserve">💩 diarea  kriszwart.github.io</text>
+<text x="22" y="115" class="l3 score" xml:space="preserve"><tspan class="title">Leak Score 94/100</tspan>  <tspan class="crit">Gushing</tspan>  <tspan class="ev">Most of how this works is sitting in the open.</tspan></text>
+<text x="22" y="136" class="l4 counts" xml:space="preserve"><tspan class="crit">2 critical</tspan>   <tspan class="warn">3 exposed</tspan>   <tspan class="info">3 minor</tspan></text>
+<text x="22" y="157" class="l5 " xml:space="preserve"></text>
+<text x="22" y="178" class="l6 crit" xml:space="preserve"><tspan class="crit">[CRIT]</tspan><tspan class="title"> Source maps are published</tspan></text>
+<text x="22" y="199" class="l7 ev" xml:space="preserve">       - /diarea/demo/app.js.map</text>
+<text x="22" y="220" class="l8 crit" xml:space="preserve"><tspan class="crit">[CRIT]</tspan><tspan class="title"> Scoring or business logic looks client-side</tspan></text>
+<text x="22" y="241" class="l9 ev" xml:space="preserve">       - weight</text>
+<text x="22" y="262" class="l10 warn" xml:space="preserve"><tspan class="warn">[WARN]</tspan><tspan class="title"> 3 possible secrets in client code</tspan></text>
+<text x="22" y="283" class="l11 ev" xml:space="preserve">       - Hard-coded apikey: cola... (37 chars)</text>
+<text x="22" y="304" class="l12 warn" xml:space="preserve"><tspan class="warn">[WARN]</tspan><tspan class="title"> Large hydration payload in the page (26 KB)</tspan></text>
+<text x="22" y="325" class="l13 ev" xml:space="preserve">       - window.__INITIAL_STATE__</text>
+<text x="22" y="346" class="l14 warn" xml:space="preserve"><tspan class="warn">[WARN]</tspan><tspan class="title"> Shipped code is readable</tspan></text>
+<text x="22" y="367" class="l15 ev" xml:space="preserve">       - /diarea/demo/app.js  (contains comments / TODOs)</text>
+<text x="22" y="388" class="l16 info" xml:space="preserve"><tspan class="info">[INFO]</tspan><tspan class="title"> 11 API endpoints visible (GraphQL)</tspan></text>
+<text x="22" y="409" class="l17 ev" xml:space="preserve">       - /api/v2/score</text>
+<text x="22" y="430" class="l18 info" xml:space="preserve"><tspan class="info">[INFO]</tspan><tspan class="title"> Hidden fields and data attributes carry meaning</tspan></text>
+<text x="22" y="451" class="l19 ev" xml:space="preserve">       - user_id</text>
+<text x="22" y="472" class="l20 info" xml:space="preserve"><tspan class="info">[INFO]</tspan><tspan class="title"> Stack is easy to fingerprint</tspan></text>
+<text x="22" y="493" class="l21 ev" xml:space="preserve">       - Next.js</text>
+<text x="22" y="514" class="l22 " xml:space="preserve"></text>
+<text x="22" y="535" class="l23 foot" xml:space="preserve">mode: live (playwright)  -  a diagnosis, not a shield. The real cure is server-side.</text>
+</svg>

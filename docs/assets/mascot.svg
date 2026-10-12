@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Diarea mascot">
+  <defs>
+    <linearGradient id="b" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a0663a"/><stop offset="1" stop-color="#6e4122"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="100" cy="164" rx="78" ry="26" fill="url(#b)"/>
+  <ellipse cx="100" cy="126" rx="60" ry="24" fill="url(#b)"/>
+  <ellipse cx="100" cy="92" rx="42" ry="20" fill="url(#b)"/>
+  <path d="M86 76 q10 -34 34 -46 q-6 18 4 30 q-14 20 -38 16z" fill="url(#b)"/>
+  <!-- nervous sweat: it has found a leak -->
+  <path d="M152 70 q12 18 2 28 a8 8 0 0 1 -13 -8 q1 -10 11 -20z" fill="#5fd0e0"/>
+  <ellipse cx="148" cy="88" rx="2.5" ry="4" fill="#fff" opacity=".6"/>
+  <!-- shine -->
+  <ellipse cx="70" cy="152" rx="14" ry="5" fill="#fff" opacity=".18"/>
+  <ellipse cx="78" cy="118" rx="10" ry="4" fill="#fff" opacity=".18"/>
+  <!-- detective magnifier eyes -->
+  <circle cx="80" cy="122" r="13" fill="#fff"/><circle cx="120" cy="122" r="13" fill="#fff"/>
+  <circle cx="84" cy="124" r="6" fill="#1d1b16"/><circle cx="116" cy="124" r="6" fill="#1d1b16"/>
+  <circle cx="86" cy="121" r="2" fill="#fff"/><circle cx="118" cy="121" r="2" fill="#fff"/>
+  <path d="M68 104 q12 -8 24 -2" stroke="#3b2414" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M108 102 q12 -6 24 2" stroke="#3b2414" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M84 150 q16 12 32 0" stroke="#3b2414" stroke-width="5" fill="none" stroke-linecap="round"/>
+</svg>
