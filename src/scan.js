@@ -9,6 +9,21 @@ import { collectStatic } from "./collect-static.js";
 
 export const isUrl = (target) => /^https?:\/\//i.test(String(target));
 
+// A JSON or text file would otherwise score a misleading 0 (Sealed).
+const looksLikeHtml = (text) => /<(?:!doctype|html|head|body|script|meta|link|div|main)\b/i.test(text);
+const notHtml = (name) => new Error(`${name} is not an HTML page. Give a built page such as dist/index.html, or an https:// URL.`);
+
+// Read a page without letting fs errors print absolute local paths.
+function readPage(file, target) {
+  try {
+    return fs.readFileSync(file, "utf8");
+  } catch (err) {
+    if (err.code === "ENOENT") throw new Error(`${target} does not exist.`);
+    if (err.code === "EISDIR") throw new Error(`${target} is a folder. Give the HTML file inside it, such as ${path.posix.join(target, "index.html")}.`);
+    throw new Error(`${target} could not be read (${err.code || "unknown error"}).`);
+  }
+}
+
 /**
  * @param {string} target  URL, file path, or "-" for stdin
  * @param {{timeout?: number, forceStatic?: boolean, cwd?: string, stdin?: string}} opts
@@ -23,7 +38,9 @@ export async function scan(target, { timeout = 30000, forceStatic = false, cwd =
   } else {
     mode = "static (jsdom)";
     if (target === "-") {
-      input = collectStatic(stdin ?? fs.readFileSync(0, "utf8"), "http://localhost/");
+      const html = stdin ?? fs.readFileSync(0, "utf8");
+      if (!looksLikeHtml(html)) throw notHtml("stdin");
+      input = collectStatic(html, "http://localhost/");
       input.host = "stdin";
     } else {
       const file = path.resolve(cwd, target);
@@ -32,7 +49,9 @@ export async function scan(target, { timeout = 30000, forceStatic = false, cwd =
       // local folder names (yours, or a CI runner's).
       const rel = path.relative(cwd, file).split(path.sep).join("/");
       const base = "file:///" + (rel.startsWith("..") ? path.basename(file) : rel);
-      input = collectStatic(fs.readFileSync(file, "utf8"), base, { root: path.dirname(file) });
+      const html = readPage(file, target);
+      if (!looksLikeHtml(html)) throw notHtml(target);
+      input = collectStatic(html, base, { root: path.dirname(file) });
       input.host = target;
     }
   }

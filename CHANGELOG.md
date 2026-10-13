@@ -6,6 +6,7 @@ All notable changes to Diarea. Versions follow [semantic versioning](https://sem
 
 - **Let your coding agent fix it.** `diarea mcp` runs an MCP server with one read-only tool, `diarea_scan`, so Claude Code, Cursor and any MCP client can scan your build or site, fix the causes in your code and scan again to prove the score dropped. `diarea setup` registers it with Claude Code; `--project` writes `.mcp.json` for the team; `--print` shows the config for other agents. No new dependencies.
 - **One scan path.** The CLI and the MCP server share `src/scan.js`. File scans report project-relative paths, so reports and pull request comments never show local folder names.
+- **No false all-clear.** Scanning a file that is not HTML (a `package.json`, a folder, piped JSON) is now an error, not a score of 0. Errors for missing files name the path you gave, never the absolute local one.
 
 ## 0.3.2
 

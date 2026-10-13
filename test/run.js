@@ -176,6 +176,11 @@ check(/\/demo\/|apikey/i.test(call.content[0].text) && !call.content[0].text.inc
   "agent reports carry redacted evidence only");
 const nope = (await rpc(5, "tools/call", { name: "diarea_scan", arguments: { target: "file:///etc/passwd" } })).result;
 check(nope.isError === true, "refuses anything but http(s) URLs and local HTML files");
+const notHtml = (await rpc(6, "tools/call", { name: "diarea_scan", arguments: { target: "package.json" } })).result;
+check(notHtml.isError === true && /not an HTML page/.test(notHtml.content[0].text),
+  "a file that is not HTML is an error, not a clean score");
+const missing = (await rpc(7, "tools/call", { name: "diarea_scan", arguments: { target: "nope/index.html" } })).result;
+check(missing.isError === true && !missing.content[0].text.includes(root), "errors do not leak local folder names");
 check((await handle({ jsonrpc: "2.0", method: "notifications/initialized" }, {})) === null, "notifications get no reply");
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "diarea-setup-"));
