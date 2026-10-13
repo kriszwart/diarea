@@ -2,7 +2,7 @@
 
 All notable changes to Diarea. Versions follow [semantic versioning](https://semver.org/); while it is 0.x, a minor bump can add checks that change scores.
 
-## Unreleased
+## 0.3.2
 
 - **Fewer false alarms on secrets** (from the first real scan, of revoluaition.com). Words ending in `sk-`, such as `task-item-...` or `mask-image-...`, were reported as OpenAI keys. Key patterns now have to start a token, and OpenAI, Stripe and GitHub keys have to look random (32 or more characters mixing digits and both cases).
 - **Supabase keys are read, not just matched.** A JWT whose role is `anon` (Supabase's public key, meant for the browser) is no longer reported; one whose role is `service_role` is now critical, since it bypasses row level security.
