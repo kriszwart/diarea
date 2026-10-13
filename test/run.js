@@ -92,6 +92,22 @@ check(secretTitles('a.token = "access_token"; b.token = "",g)).x = 1; d = { secr
 check(secretTitles('const config = { password: "hunter2-but-longer" };').length === 1,
   "a real hard-coded password is still caught");
 
+// Third pass on revoluaition.com: 38 "API endpoints" were mostly page links,
+// XML namespaces, CDN scripts, and bundles the scanner itself had fetched.
+const endpointFinding = (input) => analyse(input).findings.find((f) => /api endpoints/i.test(f.title));
+const pageLinks = ["", "pricing", "about", "terms", "privacy", "blog", "docs", "start"]
+  .map((p) => `"https://app.example.test/${p}"`).join(",");
+check(!endpointFinding({ inlineScripts: [`const links=[${pageLinks}]; const ns="http://www.w3.org/2000/svg";` +
+  ` const e="https://react.dev/errors/"; s.src="https://cdn.example.test/lib/v2/lib.js"; img="https://app.example.test/og.svg";`],
+  networkUrls: ["https://app.example.test/assets/index-abc.js", "https://app.example.test/assets/index-abc.js.map"] }),
+  "page links, namespaces, CDN scripts and static files are not API endpoints");
+const hashed = (n) => "https://app.example.test/_serverFn/" + String(n).repeat(64);
+const grouped = endpointFinding({ inlineScripts: ['fetch("/api/broadcast"); fetch("https://api.example.test/v1/users");'],
+  networkUrls: [1, 2, 3, 4, 5].map(hashed) });
+check(grouped && /^7 API endpoints/.test(grouped.title) && grouped.evidence.some((e) => /_serverFn\/\* \(5\)$/.test(e)) &&
+  grouped.evidence.some((e) => e.includes("/api/broadcast")) && grouped.evidence.some((e) => e.includes("api.example.test/v1/users")),
+  "real API calls still count, and hashed server functions are grouped");
+
 console.log("Static file scans:");
 const demoDir = path.join(here, "..", "site", "demo");
 const demo = analyse(collectStatic(fs.readFileSync(path.join(demoDir, "index.html"), "utf8"),

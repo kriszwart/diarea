@@ -188,20 +188,37 @@ export function analyse(input = {}) {
 
   // 6. API surface is easy to map
   const urlRe = /(["'`])(\/(?:api|graphql|v\d|rest|rpc|internal|admin)(?![A-Za-z0-9])(?:\/[A-Za-z0-9_\-\/.:]*)?|https?:\/\/[A-Za-z0-9_.\-]+\/[A-Za-z0-9_\-\/.]*)\1/g;
+  // An absolute URL in the bundle only counts when it looks like an API: an
+  // api.* host or an API path. Page links, XML namespaces, docs and CDN
+  // scripts are not part of anyone's API map, and neither are static files.
+  const apiPath = /\/(?:api|graphql|gql|v\d+|rest|rpc|trpc|internal|admin|_serverFn|functions)(?:\/|$)/i;
+  const staticFile = /\.(?:js|mjs|css|map|svg|png|jpe?g|gif|webp|avif|ico|woff2?|ttf|otf|mp4|webm|html?)$/i;
   let um;
-  const endpoints = new Set(i.networkUrls || []);
+  const endpoints = new Set((i.networkUrls || []).filter((u) => !staticFile.test(u)));
   while ((um = urlRe.exec(js)) !== null) {
     let p = um[2];
-    try { if (p.startsWith("http")) { const u = new URL(p); p = u.origin + u.pathname; } } catch {}
-    if (p.length < 120) endpoints.add(p);
+    if (p.startsWith("http")) {
+      try {
+        const u = new URL(p);
+        if (!/^api\./i.test(u.hostname) && !apiPath.test(u.pathname)) continue;
+        p = u.origin + u.pathname;
+      } catch { continue; }
+    }
+    if (p.length < 120 && !staticFile.test(p)) endpoints.add(p);
   }
   const eps = Array.from(endpoints);
+  // Hashed segments (server functions, ids) collapse to one line each.
+  const groups = new Map();
+  for (const e of eps) {
+    const g = e.replace(/\/(?:[0-9a-f]{16,}|(?=[^/]*\d)[A-Za-z0-9_-]{32,})(?=\/|$)/gi, "/*");
+    groups.set(g, (groups.get(g) || 0) + 1);
+  }
   const graphql = eps.some((e) => /graphql/i.test(e));
   if (eps.length >= 6 || graphql) {
     add("info", eps.length + " API endpoints visible" + (graphql ? " (GraphQL)" : ""),
       "Endpoints in the bundle or on the wire let someone draw your API map without guessing. Expected to a degree, but a fully introspectable API makes bulk extraction trivial.",
       "Add auth, rate limits and per-account quotas. If GraphQL, disable introspection in production.",
-      eps.slice(0, 5));
+      Array.from(groups).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([g, n]) => (n > 1 ? `${g} (${n})` : g)));
   }
 
   // 7. Hidden fields and data-* carrying meaning

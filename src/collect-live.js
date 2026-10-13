@@ -47,9 +47,12 @@ export async function collectLive(url, opts = {}) {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout });
   }
 
+  // Snapshot the page's own traffic first: collectPage fetches bundles and
+  // .map files itself, and those requests are the scanner's, not the site's.
+  const pageTraffic = Array.from(networkUrls);
   const collected = await page.evaluate(collectPage);
 
   await browser.close();
-  collected.networkUrls = Array.from(networkUrls);
+  collected.networkUrls = pageTraffic;
   return collected;
 }
