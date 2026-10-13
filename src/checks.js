@@ -74,6 +74,12 @@ export function analyse(input = {}) {
   // keys that are random strings must look random: digits plus both cases.
   const B = "(?<![A-Za-z0-9_-])";
   const looksRandom = (v) => /[0-9]/.test(v) && /[A-Z]/.test(v) && /[a-z]/.test(v);
+  const jwtRole = (t) => {
+    try {
+      const p = t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+      return JSON.parse(atob(p + "===".slice((p.length + 3) % 4))).role;
+    } catch { return undefined; }
+  };
   const secretRules = [
     { re: new RegExp(B + "sk_live_[0-9a-zA-Z]{16,}", "g"), label: "Stripe secret key", sev: "crit", random: true },
     { re: new RegExp(B + "sk-(?:proj-|svcacct-|admin-)?[A-Za-z0-9_-]{32,}", "g"), label: "OpenAI-style secret key", sev: "crit", random: true },
@@ -81,13 +87,20 @@ export function analyse(input = {}) {
     { re: new RegExp(B + "AIza[0-9A-Za-z_-]{35}", "g"), label: "Google API key", sev: "warn" },
     { re: new RegExp(B + "xox[baprs]-[0-9A-Za-z-]{10,}", "g"), label: "Slack token", sev: "crit" },
     { re: new RegExp(B + "gh[pousr]_[A-Za-z0-9]{30,}", "g"), label: "GitHub token", sev: "crit", random: true },
-    { re: new RegExp(B + "eyJ[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{6,}", "g"), label: "JWT / bearer token", sev: "warn" },
+    { re: new RegExp(B + "eyJ[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{6,}", "g"), label: "JWT / bearer token", sev: "warn", jwt: true },
     { re: new RegExp(B + "sk_test_[0-9a-zA-Z]{16,}", "g"), label: "Stripe test secret key", sev: "warn", random: true },
   ];
   const secretHits = [];
   for (const rule of secretRules) {
     for (const h of uniq(haystack.match(rule.re) || [])) {
       if (rule.random && !looksRandom(h.replace(/^(sk_live_|sk_test_|sk-(?:proj-|svcacct-|admin-)?|gh[pousr]_)/, ""))) continue;
+      if (rule.jwt) {
+        // Supabase ships a public anon key to every browser by design; its
+        // service role key bypasses row level security and must never ship.
+        const role = jwtRole(h);
+        if (role === "anon") continue;
+        if (role === "service_role") { secretHits.push({ sev: "crit", label: "Supabase service role key", value: h }); continue; }
+      }
       secretHits.push({ sev: rule.sev, label: rule.label, value: h });
     }
   }
@@ -98,6 +111,8 @@ export function analyse(input = {}) {
     const key = am[1], val = am[2];
     if (/process\.env|import\.meta|YOUR_|xxxx|changeme|example|placeholder|\$\{|<%/.test(val)) continue;
     if (val.length > 120) continue;
+    // Minified code: the "value" ran across code, or is a constant like "access_token".
+    if (/[\s(){}\[\];,]/.test(val) || /^(?:[a-z]+(?:[_.-][a-z]+)+|[A-Z]+(?:_[A-Z]+)+)$/.test(val)) continue;
     const sig = key.toLowerCase() + ":" + val.slice(0, 6);
     if (seen.has(sig)) continue;
     seen.add(sig);

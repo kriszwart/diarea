@@ -73,6 +73,21 @@ check(secretTitles('const a = "task-item-description-text-and-more"; const b = "
 const realShaped = "sk-" + "Ab3dE5gH7jK9mN1pQ3sT5vX7zA9cE1gI3kM5oQ7sU9wY1aC";
 check(secretTitles(`const k = "${realShaped}";`).length === 1, "a real-shaped key is still caught");
 
+// Second pass on revoluaition.com: a Supabase anon key (public by design) and
+// minified code that only looked like `token: "..."` were reported as secrets.
+const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+const fakeJwt = (claims) => ["ey" + b64({ alg: "HS256", typ: "JWT" }).slice(2), b64(claims), "c2lnbmF0dXJlLW5vdC1yZWFs"].join(".");
+const secrets = (js) => analyse({ inlineScripts: [js] }).findings.filter((f) => /secret/.test(f.title));
+check(secrets(`createClient("https://x.supabase.co", "${fakeJwt({ iss: "supabase", role: "anon" })}")`).length === 0,
+  "a Supabase anon key is not reported");
+const serviceRole = secrets(`createClient("https://x.supabase.co", "${fakeJwt({ iss: "supabase", role: "service_role" })}")`);
+check(serviceRole.length === 1 && serviceRole[0].sev === "crit" && /service role/i.test(serviceRole[0].evidence.join()),
+  "a Supabase service role key is critical");
+check(secrets(`const T={join:"phx_join",leave:"phx_leave",ACCESS_TOKEN:"access_token"};` +
+  `n("Failed to set initial Realtime auth token:",g)),fetch(new URL("rest/v1",l).href)`).length === 0,
+  "minified constants and code are not mistaken for hard-coded tokens");
+check(secrets(`const config = { password: "hunter2-but-longer" };`).length === 1, "a real hard-coded password is still caught");
+
 console.log("Static file scans:");
 const demoDir = path.join(here, "..", "site", "demo");
 const demo = analyse(collectStatic(fs.readFileSync(path.join(demoDir, "index.html"), "utf8"),
