@@ -3,9 +3,8 @@
  * Local and read-only. Usage: diarea scan <url|file> [options]
  */
 import fs from "node:fs";
-import path from "node:path";
-import { analyse, scoreOf, bandOf, SEV_ORDER } from "../src/checks.js";
-import { collectStatic } from "../src/collect-static.js";
+import { scoreOf, bandOf, SEV_ORDER } from "../src/checks.js";
+import { scan } from "../src/scan.js";
 
 const VERSION = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
@@ -17,6 +16,10 @@ Usage:
   diarea scan <file.html>        Scan a saved page, no browser
   diarea scan --html <file>      Same, explicit
   cat page.html | diarea scan -  Scan HTML from stdin
+  diarea setup                   Let your coding agent run Diarea (Claude Code, MCP)
+  diarea setup --project         ...for everyone on this project (.mcp.json)
+  diarea setup --print           Show the MCP config for other agents
+  diarea mcp                     Run the MCP server (agents start this for you)
 
 Options:
   --json             Output the report as JSON
@@ -108,43 +111,32 @@ async function main() {
   if (o.help || o._.length === 0) { console.log(HELP); return o.help ? 0 : 2; }
 
   const cmd = o._[0];
+  if (cmd === "mcp") {
+    const { serve } = await import("../src/mcp.js");
+    serve({ version: VERSION });
+    return null; // keep running until the agent closes stdin
+  }
+  if (cmd === "setup") {
+    const { setup } = await import("../src/setup.js");
+    return setup(process.argv.slice(3));
+  }
   if (cmd !== "scan") { console.error(`Unknown command: ${cmd}\n${HELP}`); return 2; }
 
   const target = o.html || o._[1];
   if (!target) { console.error("Nothing to scan. Give a URL or a file.\n" + HELP); return 2; }
 
   const s = makeStyle(o.color && process.stdout.isTTY && !process.env.NO_COLOR);
-  let input, mode;
-
+  let result;
   try {
-    const isUrl = /^https?:\/\//i.test(target);
-    if (isUrl && !o.html) {
-      mode = "live (playwright)";
-      const { collectLive } = await import("../src/collect-live.js");
-      input = await collectLive(target, { timeout: o.timeout });
-    } else {
-      mode = "static (jsdom)";
-      let html, base = "http://localhost/";
-      if (target === "-") {
-        html = fs.readFileSync(0, "utf8");
-      } else {
-        html = fs.readFileSync(target, "utf8");
-        base = "file://" + target;
-      }
-      // For a file, also read its local scripts (inside its own folder only).
-      input = collectStatic(html, base, target === "-" ? {} : { root: path.dirname(path.resolve(target)) });
-      input.host = target === "-" ? "stdin" : target;
-    }
+    result = await scan(target, { timeout: o.timeout, forceStatic: Boolean(o.html) });
   } catch (err) {
     console.error(`\n  ${s.crit("Could not scan.")} ${err.message}\n`);
     return 2;
   }
-
-  const result = analyse(input);
-  const score = scoreOf(result.findings);
+  const { score, mode } = result;
 
   if (o.json) {
-    console.log(JSON.stringify({ ...result, score, band: bandOf(score).label, mode }, null, 2));
+    console.log(JSON.stringify(result, null, 2));
   } else {
     console.log(renderHuman(result, mode, s));
   }
@@ -155,4 +147,4 @@ async function main() {
   return 0;
 }
 
-main().then((code) => process.exit(code)).catch((e) => { console.error(e); process.exit(2); });
+main().then((code) => { if (code !== null) process.exit(code); }).catch((e) => { console.error(e); process.exit(2); });

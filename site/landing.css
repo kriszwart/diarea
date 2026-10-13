@@ -237,7 +237,8 @@ section { scroll-margin-top: 16px; }
 
 /* Use */
 .use { padding-top: 24px; padding-bottom: 72px; }
-.use-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.use-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 760px) { .use-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .use-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .use-card h3 { font-size: 22px; }
 .use-card p { margin: 0; color: var(--ink-soft); font-size: 15px; }

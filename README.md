@@ -30,9 +30,22 @@ An AI agent can now read your frontend and rebuild your product. Diarea reads it
 ```
 npx diarea scan https://your-site.com     # a live site you own
 npx diarea scan dist/index.html           # your build output, no browser needed
+npx diarea setup                          # let your coding agent run it (Claude Code, Cursor, any MCP client)
 ```
 
 Live scans need a browser once: `npx playwright install chromium`. Prefer clicking? There is a [Chrome extension](#install-the-extension). Want it in CI? There is a [GitHub Action](#github-action).
+
+## Let your coding agent fix it
+
+Agent versus agent, made literal. Diarea ships an [MCP](https://modelcontextprotocol.io) server, so the agent that writes your code can find your leaks and close them:
+
+```
+npx diarea setup             # Claude Code, for all your projects
+npx diarea setup --project   # or write .mcp.json here, so the whole team gets it
+npx diarea setup --print     # or show the config for Cursor, Windsurf and other MCP clients
+```
+
+Then ask: *"Scan my site for leaks with Diarea and fix what it finds."* The agent runs `diarea_scan` on your build or deployed URL, fixes the causes in your code (secrets and logic to the server, source maps off, payloads trimmed), then scans again to prove the score dropped. The server is read-only, runs on your machine and sends nothing anywhere; secrets reach the agent as a prefix and a length, never in full.
 
 ## Try it in 30 seconds
 
@@ -149,7 +162,7 @@ Commenting never fails the build: on forked pull requests (read-only token) it l
 
 We dogfood it: every pull request to this repo gets the Leak Score of our own landing page. It scores 11/100, Sealed. The one finding is that `landing.js` is readable, which for an open source site is rather the point.
 
-`@v0` follows the latest 0.x release. Pin to `@v0.3.2` (or a commit SHA) for a fixed version.
+`@v0` follows the latest 0.x release. Pin to `@v0.4.0` (or a commit SHA) for a fixed version.
 
 | Input | Default | |
 |---|---|---|

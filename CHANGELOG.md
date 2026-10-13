@@ -2,6 +2,11 @@
 
 All notable changes to Diarea. Versions follow [semantic versioning](https://semver.org/); while it is 0.x, a minor bump can add checks that change scores.
 
+## 0.4.0
+
+- **Let your coding agent fix it.** `diarea mcp` runs an MCP server with one read-only tool, `diarea_scan`, so Claude Code, Cursor and any MCP client can scan your build or site, fix the causes in your code and scan again to prove the score dropped. `diarea setup` registers it with Claude Code; `--project` writes `.mcp.json` for the team; `--print` shows the config for other agents. No new dependencies.
+- **One scan path.** The CLI and the MCP server share `src/scan.js`. File scans report project-relative paths, so reports and pull request comments never show local folder names.
+
 ## 0.3.2
 
 Fixes from the first real scans, of revoluaition.com.

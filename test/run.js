@@ -9,6 +9,9 @@ import { analyse, scoreOf, bandOf } from "../src/checks.js";
 import { collectStatic } from "../src/collect-static.js";
 import { renderSummary } from "../scripts/action-summary.js";
 import { commentBody, keyOf, movement, previousScore, upsertComment } from "../scripts/pr-comment.js";
+import { handle } from "../src/mcp.js";
+import { setup, SERVER } from "../src/setup.js";
+import os from "node:os";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 // Fake keys are assembled here, not stored in the fixture, so the repo never
@@ -154,6 +157,34 @@ check(res.action === "created" && !gh.calls.some((c) => c.method === "PATCH"),
 gh = fakeGitHub([], 403);
 res = await upsertComment({ ...base, fetchImpl: gh.fetchImpl });
 check(res.ok === false && res.error.status === 403, "a read-only token (forked pull request) fails softly");
+
+console.log("MCP server and setup:");
+const root = path.join(here, "..");
+const rpc = (id, method, params) => handle({ jsonrpc: "2.0", id, method, params }, { version: "test", cwd: root });
+const init = await rpc(1, "initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "0" } });
+check(init.result.protocolVersion === "2025-06-18" && init.result.capabilities.tools && /defensive/i.test(init.result.instructions),
+  "initialize negotiates the version and explains the workflow");
+const tools = (await rpc(2, "tools/list")).result.tools;
+check(tools.length === 1 && tools[0].name === "diarea_scan" && tools[0].annotations.readOnlyHint === true, "lists one read-only scan tool");
+const call = (await rpc(3, "tools/call", { name: "diarea_scan", arguments: { target: "site/demo/index.html" } })).result;
+check(!call.isError && /100\/100, Gushing/.test(call.content[0].text) && !call.content[0].text.includes(root),
+  "scans for an agent, without leaking local folder names");
+const demoKey = fs.readFileSync(path.join(root, "site/demo/app.js"), "utf8").match(/apiKey: "([^"]+)"/)[1];
+check(/\/demo\/|apikey/i.test(call.content[0].text) && !call.content[0].text.includes(demoKey),
+  "agent reports carry redacted evidence only");
+const nope = (await rpc(5, "tools/call", { name: "diarea_scan", arguments: { target: "file:///etc/passwd" } })).result;
+check(nope.isError === true, "refuses anything but http(s) URLs and local HTML files");
+check((await handle({ jsonrpc: "2.0", method: "notifications/initialized" }, {})) === null, "notifications get no reply");
+
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "diarea-setup-"));
+fs.writeFileSync(path.join(tmp, ".mcp.json"), JSON.stringify({ mcpServers: { other: { command: "x" } } }));
+setup(["--project"], { cwd: tmp, log: () => {} });
+const written = JSON.parse(fs.readFileSync(path.join(tmp, ".mcp.json"), "utf8"));
+check(written.mcpServers.other && JSON.stringify(written.mcpServers.diarea) === JSON.stringify(SERVER), "setup --project merges into an existing .mcp.json");
+const calls = [];
+setup([], { log: () => {}, run: (cmd, args) => { calls.push(args.join(" ")); return { status: 0, stdout: "", stderr: "" }; } });
+check(calls[1] === "mcp add --scope user diarea -- npx -y diarea@latest mcp", "setup registers with Claude Code at user scope");
+fs.rmSync(tmp, { recursive: true, force: true });
 
 console.log(failed === 0
   ? `\nAll ${expected.length} checks fired and every guard passed. Engine is working.\n`

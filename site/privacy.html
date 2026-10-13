@@ -40,9 +40,9 @@
       <li><b>scripting</b>: runs the read-only scan inside that tab so it can see what the page exposes.</li>
     </ul>
 
-    <h2>The CLI, the GitHub Action and this website</h2>
+    <h2>The CLI, the agent server, the GitHub Action and this website</h2>
     <ul>
-      <li>The command-line tool runs on your machine and sends nothing anywhere. The GitHub Action runs in your own GitHub workflow; on pull requests it posts the score as a comment on that pull request, using your workflow's own token.</li>
+      <li>The command-line tool runs on your machine and sends nothing anywhere. The same goes for the MCP server your coding agent can start (<code>diarea mcp</code>): it runs locally, only scans what the agent asks it to, and hands back the report with secrets redacted. What your agent then does with that report is up to your agent and its own privacy terms. The GitHub Action runs in your own GitHub workflow; on pull requests it posts the score as a comment on that pull request, using your workflow's own token.</li>
       <li>This website sets no cookies and loads nothing from other sites. The one exception is the trailer: if you press play, the video loads from YouTube's privacy-enhanced player, under <a href="https://policies.google.com/privacy">Google's privacy policy</a>.</li>
     </ul>
 
