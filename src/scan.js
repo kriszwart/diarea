@@ -19,7 +19,6 @@ function readPage(file, target) {
     return fs.readFileSync(file, "utf8");
   } catch (err) {
     if (err.code === "ENOENT") throw new Error(`${target} does not exist.`);
-    if (err.code === "EISDIR") throw new Error(`${target} is a folder. Give the HTML file inside it, such as ${path.posix.join(target, "index.html")}.`);
     throw new Error(`${target} could not be read (${err.code || "unknown error"}).`);
   }
 }
@@ -43,7 +42,12 @@ export async function scan(target, { timeout = 30000, forceStatic = false, cwd =
       input = collectStatic(html, "http://localhost/");
       input.host = "stdin";
     } else {
-      const file = path.resolve(cwd, target);
+      let file = path.resolve(cwd, target);
+      // A build folder (dist/, out/, build/) means its index.html.
+      if (fs.statSync(file, { throwIfNoEntry: false })?.isDirectory()) {
+        file = path.join(file, "index.html");
+        if (!fs.existsSync(file)) throw new Error(`${target} is a folder with no index.html. Give the page to scan, such as ${path.posix.join(target, "page.html")}.`);
+      }
       // For a file, also read its local scripts (inside its own folder only).
       // Evidence paths are relative to the project, so reports never show
       // local folder names (yours, or a CI runner's).

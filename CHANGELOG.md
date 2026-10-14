@@ -8,6 +8,7 @@ All notable changes to Diarea. Versions follow [semantic versioning](https://sem
 - **One scan path.** The CLI and the MCP server share `src/scan.js`. File scans report project-relative paths, so reports and pull request comments never show local folder names.
 - **No false all-clear.** Scanning a file that is not HTML (a `package.json`, a folder, piped JSON) is now an error, not a score of 0. Errors for missing files name the path you gave, never the absolute local one.
 - **An honest endpoint count.** Only URLs that look like an API (an `api.` host or a path such as `/api/`, `/v1/`, `/graphql`, `/_serverFn/`) count from the bundle, so page links, XML namespaces, docs and CDN scripts no longer pad the map. Live scans stop counting the bundles and source maps Diarea fetches itself. Hashed paths are grouped, for example `/_serverFn/* (5)`. On revoluaition.com the count fell from 38 to 4.
+- **Scan a build folder.** `diarea scan dist` scans `dist/index.html`, in the CLI, the Action and the MCP tool.
 
 ## 0.3.2
 

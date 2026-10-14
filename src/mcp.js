@@ -23,11 +23,11 @@ export const TOOLS = [
   {
     name: "diarea_scan",
     title: "Scan for frontend leaks",
-    description: "Scan a web page for what its frontend leaks (exposed keys, source maps, API endpoint maps, AI system prompts, hydration payloads, readable bundles, hidden fields). Give an https:// URL for a live scan in a headless browser, or a path to a built HTML file for a static scan that also reads its local scripts. Returns a 0 to 100 Leak Score, its band and each finding with evidence and a fix. Secret values are redacted. Only scan sites the user owns or is authorised to test.",
+    description: "Scan a web page for what its frontend leaks (exposed keys, source maps, API endpoint maps, AI system prompts, hydration payloads, readable bundles, hidden fields). Give an https:// URL for a live scan in a headless browser, or a path to a built HTML file or build folder for a static scan that also reads its local scripts. Returns a 0 to 100 Leak Score, its band and each finding with evidence and a fix. Secret values are redacted. Only scan sites the user owns or is authorised to test.",
     inputSchema: {
       type: "object",
       properties: {
-        target: { type: "string", description: "An https:// URL, or a path to an HTML file (relative to the project root), for example dist/index.html." },
+        target: { type: "string", description: "An https:// URL, or a path to an HTML file or build folder (relative to the project root), for example dist/index.html or dist." },
         timeout_ms: { type: "integer", minimum: 1000, maximum: 120000, description: "Navigation timeout for live scans. Default 30000." },
       },
       required: ["target"],

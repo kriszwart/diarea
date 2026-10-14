@@ -197,6 +197,10 @@ check(notHtml.isError === true && /not an HTML page/.test(notHtml.content[0].tex
   "a file that is not HTML is an error, not a clean score");
 const missing = (await rpc(7, "tools/call", { name: "diarea_scan", arguments: { target: "nope/index.html" } })).result;
 check(missing.isError === true && !missing.content[0].text.includes(root), "errors do not leak local folder names");
+const folder = (await rpc(8, "tools/call", { name: "diarea_scan", arguments: { target: "site/demo" } })).result;
+check(!folder.isError && /100\/100, Gushing/.test(folder.content[0].text), "a build folder scans its index.html");
+const noIndex = (await rpc(9, "tools/call", { name: "diarea_scan", arguments: { target: "test" } })).result;
+check(noIndex.isError === true && /no index\.html/.test(noIndex.content[0].text), "a folder without index.html is an error");
 check((await handle({ jsonrpc: "2.0", method: "notifications/initialized" }, {})) === null, "notifications get no reply");
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "diarea-setup-"));

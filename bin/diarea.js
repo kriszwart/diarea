@@ -14,6 +14,7 @@ diarea ${VERSION}  -  frontend leak scanner (local, read-only)
 Usage:
   diarea scan <url>              Scan a live site (needs Playwright + a browser)
   diarea scan <file.html>        Scan a saved page, no browser
+  diarea scan <folder>           Scan a build folder's index.html (dist/, out/)
   diarea scan --html <file>      Same, explicit
   cat page.html | diarea scan -  Scan HTML from stdin
   diarea setup                   Let your coding agent run Diarea (Claude Code, MCP)
