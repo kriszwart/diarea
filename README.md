@@ -113,6 +113,7 @@ The same detection engine runs headless, so you can scan from your terminal and 
 ```
 # a saved page or build output, no browser needed
 npx diarea scan dist/index.html
+npx diarea scan dist              # a build folder means its index.html
 
 # a live site (needs a browser once, see below)
 npx diarea scan https://your-site.com
@@ -120,6 +121,9 @@ npx diarea scan https://your-site.com
 # machine-readable, and fail a build above a threshold
 npx diarea scan dist/index.html --json
 npx diarea scan https://your-site.com --fail-on 40
+
+# SARIF 2.1.0 for GitHub code scanning
+npx diarea scan dist --sarif > diarea.sarif
 ```
 
 Two modes:
@@ -132,7 +136,7 @@ npm install playwright
 npx playwright install chromium
 ```
 
-Options: `--json`, `--fail-on <score>`, `--strict` (exit 1 on any critical finding), `--timeout <ms>`, `--no-color`. Exit codes make it a drop-in CI check: `0` clean or under your threshold, `1` when the score reaches `--fail-on` (or any critical finding with `--strict`), `2` on error.
+Options: `--json`, `--sarif`, `--fail-on <score>`, `--strict` (exit 1 on any critical finding), `--timeout <ms>`, `--no-color`. Exit codes make it a drop-in CI check: `0` clean or under your threshold, `1` when the score reaches `--fail-on` (or any critical finding with `--strict`), `2` on error.
 
 ## GitHub Action
 
@@ -173,9 +177,31 @@ We dogfood it: every pull request to this repo gets the Leak Score of our own la
 | `comment` | `true` | On pull requests, post the score as one comment and keep it updated |
 | `comment-key` | the target | Keeps comments apart when one workflow scans several targets |
 | `github-token` | `github.token` | Token used to comment |
+| `sarif` | `false` | Also write the findings as SARIF (the `sarif` output) |
 | `node-version` | `20` | Node to run on |
 
-Outputs: `score`, `band`, `critical` and `report` (path to the JSON report).
+Outputs: `score`, `band`, `critical`, `report` (path to the JSON report) and `sarif` (path to the SARIF file).
+
+To see findings in the repository's Security tab next to CodeQL, turn on `sarif` and upload it. `if: always()` uploads even when the scan fails the build:
+
+```yaml
+permissions:
+  contents: read
+  security-events: write
+steps:
+  - uses: kriszwart/diarea@v0
+    id: diarea
+    with:
+      target: dist/index.html
+      sarif: true
+  - uses: github/codeql-action/upload-sarif@v3
+    if: always() && steps.diarea.outputs.sarif
+    with:
+      sarif_file: ${{ steps.diarea.outputs.sarif }}
+      category: diarea
+```
+
+Each check is its own rule (`source-maps`, `secrets`, `client-logic` and so on), and alerts point at the scanned file, so this works best with a static scan of a page in the repository.
 
 ## Privacy
 

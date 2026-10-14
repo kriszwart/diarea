@@ -7,7 +7,7 @@ Open source (MIT). Author: Kris Zwart, ZwartifyDesign.
 ## Product shape
 
 1. **Chrome extension (MV3)**: scans the current tab and shows a scored leak report.
-2. **CLI**: `npx diarea scan <url|file>` with `--json`, `--fail-on <score>`, `--strict`, `--timeout`.
+2. **CLI**: `npx diarea scan <url|file|folder>` with `--json`, `--sarif`, `--fail-on <score>`, `--strict`, `--timeout`.
 3. **CI gate (v2)**: a thin GitHub Action wrapping the CLI exit codes.
 4. **MCP server for coding agents**: `diarea mcp` (stdio, no SDK) with one read-only tool, `diarea_scan`; `diarea setup` registers it with Claude Code (or `--project` writes `.mcp.json`, `--print` shows other agents' config).
 5. **Live API watcher (later)**.
@@ -22,7 +22,7 @@ First real target: revoluAItion (revoluaition.com), a client-rendered app, so th
 - `src/collect-live.js` loads the page with Playwright, runs `collectPage` and adds the network map.
 - `src/scan.js` runs one scan from target to scored report; the CLI and the MCP server both use it. File scans use project-relative paths so reports never show local folder names.
 - `src/mcp.js` is the MCP server (JSON-RPC over stdio, stdout is protocol only) and `src/setup.js` the `diarea setup` command. Keep the tool read-only and the server instructions defensive.
-- `bin/diarea.js` is the CLI entry point.
+- `bin/diarea.js` is the CLI entry point. `src/sarif.js` formats a report as SARIF 2.1.0 (`--sarif`, and the Action's `sarif` input via `scripts/action-sarif.js`); it holds no rules. Every finding has a stable `id`, which is its SARIF rule id: never rename one.
 - `action.yml` is the GitHub Action: it runs the CLI with `--json` and `scripts/action-report.js` turns the report into outputs, a job summary (`scripts/action-summary.js`), a sticky pull request comment (`scripts/pr-comment.js`, updated in place, never fatal) and the CLI's exit code.
 - `extension/` holds the Chrome extension. `npm run build` (`scripts/build.js`) copies `src/checks.js` and `src/collect-page.js` into `extension/lib/` and `site/lib/`; both are git-ignored, never edit them.
 - `test/fixtures/` holds deliberately leaky and clean pages. `npm test` must run without a browser. Fake secrets are assembled in the test, never stored as credential-shaped strings (GitHub push protection blocks them).

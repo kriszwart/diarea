@@ -24,6 +24,7 @@ Usage:
 
 Options:
   --json             Output the report as JSON
+  --sarif            Output SARIF 2.1.0 (GitHub code scanning)
   --fail-on <n>      Exit 1 if the leak score is n or more (for CI)
   --strict           Exit 1 if any critical finding is present
   --timeout <ms>     Navigation timeout for live scans (default 30000)
@@ -37,10 +38,11 @@ Examples:
 `;
 
 function parseArgs(argv) {
-  const o = { _: [], json: false, strict: false, color: true, timeout: 30000, failOn: null, html: null };
+  const o = { _: [], json: false, sarif: false, strict: false, color: true, timeout: 30000, failOn: null, html: null };
   for (let k = 0; k < argv.length; k++) {
     const a = argv[k];
     if (a === "--json") o.json = true;
+    else if (a === "--sarif") o.sarif = true;
     else if (a === "--strict") o.strict = true;
     else if (a === "--no-color") o.color = false;
     else if (a === "--html") o.html = argv[++k];
@@ -136,7 +138,10 @@ async function main() {
   }
   const { score, mode } = result;
 
-  if (o.json) {
+  if (o.sarif) {
+    const { toSarif, sarifTarget } = await import("../src/sarif.js");
+    console.log(JSON.stringify(toSarif(result, { version: VERSION, target: sarifTarget(result) }), null, 2));
+  } else if (o.json) {
     console.log(JSON.stringify(result, null, 2));
   } else {
     console.log(renderHuman(result, mode, s));

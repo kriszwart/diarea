@@ -33,6 +33,10 @@ inputs:
     description: "Token used to post the pull request comment."
     required: false
     default: ${{ github.token }}
+  sarif:
+    description: "Also write the findings as SARIF 2.1.0 (the `sarif` output), for github/codeql-action/upload-sarif. Works best when the target is a file in the repository."
+    required: false
+    default: "false"
   node-version:
     description: "Node version to run Diarea on (20 or later)."
     required: false
@@ -51,6 +55,9 @@ outputs:
   report:
     description: "Path to the full JSON report."
     value: ${{ steps.scan.outputs.report }}
+  sarif:
+    description: "Path to the SARIF file, when `sarif` is true."
+    value: ${{ steps.sarif.outputs.sarif }}
 
 runs:
   using: "composite"
@@ -94,6 +101,15 @@ runs:
         set -e
         echo "report=$REPORT" >> "$GITHUB_OUTPUT"
         echo "code=$code" >> "$GITHUB_OUTPUT"
+
+    - name: SARIF
+      id: sarif
+      if: inputs.sarif == 'true'
+      shell: bash
+      env:
+        REPORT: ${{ steps.scan.outputs.report }}
+        SARIF: ${{ runner.temp }}/diarea.sarif
+      run: node "${{ github.action_path }}/scripts/action-sarif.js"
 
     - name: Report
       id: report

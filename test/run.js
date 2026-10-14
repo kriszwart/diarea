@@ -10,6 +10,7 @@ import { collectStatic } from "../src/collect-static.js";
 import { renderSummary } from "../scripts/action-summary.js";
 import { commentBody, keyOf, movement, previousScore, upsertComment } from "../scripts/pr-comment.js";
 import { handle } from "../src/mcp.js";
+import { toSarif } from "../src/sarif.js";
 import { setup, SERVER } from "../src/setup.js";
 import os from "node:os";
 
@@ -189,6 +190,20 @@ check(res.action === "created" && !gh.calls.some((c) => c.method === "PATCH"),
 gh = fakeGitHub([], 403);
 res = await upsertComment({ ...base, fetchImpl: gh.fetchImpl });
 check(res.ok === false && res.error.status === 403, "a read-only token (forked pull request) fails softly");
+
+console.log("SARIF:");
+check(result.findings.every((f) => /^[a-z]+(-[a-z]+)*$/.test(f.id)) && new Set(result.findings.map((f) => f.id)).size === result.findings.length,
+  "every finding has its own stable id");
+const sarif = toSarif({ ...result, score, band: band.label, mode: "static (jsdom)", host: "dist/index.html" }, { version: "test", target: "dist/index.html" });
+const sarifRun = sarif.runs[0];
+check(sarif.version === "2.1.0" && sarifRun.tool.driver.name === "Diarea" && sarifRun.results.length === result.findings.length,
+  "SARIF 2.1.0 with one result per finding");
+check(sarifRun.results.every((r) => sarifRun.tool.driver.rules.some((rule) => rule.id === r.ruleId)) &&
+  sarifRun.results.some((r) => r.level === "error") && sarifRun.results.every((r) => ["error", "warning", "note"].includes(r.level)),
+  "SARIF results point at rules and map severities to levels");
+check(sarifRun.results.every((r) => r.locations[0].physicalLocation.artifactLocation.uri === "dist/index.html"),
+  "SARIF results are located on the scanned file");
+check(!Object.values(FAKE_SECRETS).some((v) => JSON.stringify(sarif).includes(v.slice(0, 12))), "SARIF output stays redacted");
 
 console.log("MCP server and setup:");
 const root = path.join(here, "..");
