@@ -108,6 +108,20 @@ check(grouped && /^7 API endpoints/.test(grouped.title) && grouped.evidence.some
   grouped.evidence.some((e) => e.includes("/api/broadcast")) && grouped.evidence.some((e) => e.includes("api.example.test/v1/users")),
   "real API calls still count, and hashed server functions are grouped");
 
+// Library corpus (react-dom, vue, jquery, lodash, three, clerk, firebase...):
+// minified vendor code tripped the readable-code and business-logic checks.
+const titlesOf = (body) => analyse({ bundles: [{ url: "https://app.example.test/assets/vendor.js", body }] }).findings.map((f) => f.title);
+const filler = (n) => Array.from({ length: n }, (_, k) => `function f${k}(a,b){return a*b+${k}}`).join(";");
+const minified = "/*! lib v1.2.3 | (c) Someone | MIT */\n/*\n Modernizr 3.0.0pre (Custom Build) | MIT\n*/\n" +
+  "/* global __DEVTOOLS_HOOK__ */" + filler(60) + ';var h={Accept:"application/json, text/plain, */*"};' +
+  'var w="{\\n/* [wrapped with "+t+"] */\\n";var p=/*#__PURE__*/x();' + filler(60);
+check(!titlesOf(minified).some((t) => /readable/i.test(t)), "licence banners, lint directives and comment-like strings are not dev notes");
+check(titlesOf(minified.replace("var p=", "/* recalculates the discount before the coupon is applied */var p=")).some((t) => /readable/i.test(t)),
+  "a real developer comment in a minified bundle is still caught");
+const spread = ["morphTargetWeights", "alphaThreshold", "fontWeight", "drawingFormula", "scoringTable", "lightCoefficient"]
+  .map((t) => `var ${t}=0.5;` + filler(15)).join(";");
+check(!titlesOf(spread).some((t) => /business logic/i.test(t)), "logic words spread through a library are not business logic");
+
 console.log("Static file scans:");
 const demoDir = path.join(here, "..", "site", "demo");
 const demo = analyse(collectStatic(fs.readFileSync(path.join(demoDir, "index.html"), "utf8"),

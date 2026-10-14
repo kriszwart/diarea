@@ -29,7 +29,8 @@
     "scan": "node bin/diarea.js scan",
     "test": "node test/run.js",
     "package:extension": "node scripts/package-extension.js",
-    "store:assets": "node scripts/render-store-assets.js"
+    "store:assets": "node scripts/render-store-assets.js",
+    "corpus": "node scripts/corpus.js"
   },
   "keywords": [
     "security",

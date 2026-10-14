@@ -48,6 +48,7 @@ Ten checks covering things like exposed keys, source maps, un-minified or commen
 npm install
 npx playwright install chromium   # only needed for live scans
 npm test
+npm run corpus                     # false-positive check against real libraries (network)
 node bin/diarea.js scan https://example.com
 node bin/diarea.js scan ./dist/index.html --json
 ```

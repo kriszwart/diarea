@@ -143,9 +143,21 @@ export function analyse(input = {}) {
   // 3. Proprietary logic shipped to the client
   const logicTerms = ["weight", "weighting", "threshold", "calibrat", "coefficient",
     "rubric", "sectorweight", "scorematrix", "scoring", "formula", "heuristic", "ruleset"];
+  // Libraries use these words too (three.js morph weights, CSS font weights),
+  // spread thinly over a big bundle. Business rules cluster: three or more
+  // terms within one small block, next to tuned decimal constants.
   const low = js.toLowerCase();
-  const logicFound = uniq(logicTerms.filter((t) => low.includes(t)));
-  if (logicFound.length >= 3 && js.length > 400) {
+  const termRe = new RegExp("(?<!font[-_]?)(" + logicTerms.join("|") + ")", "g");
+  const hits = Array.from(low.matchAll(termRe), (m) => ({ t: m[1], at: m.index }));
+  let logicFound = [];
+  for (let a = 0, b = 0; a < hits.length; a++) {
+    while (b < hits.length && hits[b].at - hits[a].at <= 600) b++;
+    const terms = uniq(hits.slice(a, b).map((h) => h.t));
+    if (terms.length < 3 || terms.length <= logicFound.length) continue;
+    const decimals = js.slice(hits[a].at, hits[b - 1].at + 200).match(/(?<![\w.])\d*\.\d+(?![\w.])/g) || [];
+    if (decimals.length >= 2) logicFound = terms;
+  }
+  if (logicFound.length >= 3) {
     add("crit", "Scoring or business logic looks client-side",
       "Terms tied to how you score, weight or decide are present in the browser bundle. If your methodology runs here, a reader can copy the thing that makes you different, not just the look.",
       "Run scoring and weightings on the server. Ship verdicts and explanations to the browser, never the rules.",
@@ -173,7 +185,12 @@ export function analyse(input = {}) {
     if (body.length < 2000) continue;
     const lines = body.split("\n");
     const avgLen = body.length / Math.max(lines.length, 1);
-    const hasComments = /\/\*[\s\S]{10,}?\*\/|\/\/\s?(TODO|FIXME|HACK|NOTE|BUG)/.test(body);
+    // Minifiers keep licence banners and bundler annotations; neither is a
+    // developer note. A "comment" holding ; { } = or string concatenation
+    // ran across code or sits in a string (such as "*/*"), so it is not one either.
+    const devNote = (c) => !/[;{}=]|^[!#@*]|@license|@preserve|copyright|\(c\)|licen[cs]e|\b(?:MIT|BSD|ISC|Apache)\b|\bv?\d+\.\d+\.\d+|["'`]\s*\+|\+\s*["'`]|^\s*(?:global|globals|exported|jshint|jslint)\b|__PURE__|webpack|vite|eslint|istanbul|@ts-|sourceMappingURL/i.test(c);
+    const hasComments = /(?<!:)\/\/\s?(TODO|FIXME|HACK|NOTE|BUG)\b/.test(body) ||
+      Array.from(body.matchAll(/\/\*([\s\S]{10,400}?)\*\//g), (m) => m[1]).some(devNote);
     if ((avgLen < 220 && lines.length > 40) || hasComments) {
       readable = { url: b.url, comments: hasComments };
       break;
