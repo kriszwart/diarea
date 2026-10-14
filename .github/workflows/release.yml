@@ -1,0 +1,67 @@
+name: Release
+
+# Push a version tag (git tag v0.4.0 && git push origin v0.4.0) and this
+# publishes that version everywhere it lives, so the tag, npm, the GitHub
+# Release, the extension zip and the Action's `v0` tag can no longer drift.
+#
+# One-time setup: add an npm automation token as the NPM_TOKEN secret, or set
+# up npm trusted publishing for this workflow (then the token is not needed).
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+permissions:
+  contents: write # the GitHub Release and moving the v0 tag
+  id-token: write # npm provenance
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Tag, package.json and manifest agree
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          pkg="v$(node -p 'require("./package.json").version')"
+          ext="v$(node -p 'require("./extension/manifest.json").version')"
+          echo "tag $TAG, package.json $pkg, manifest $ext"
+          [[ "$TAG" == "$pkg" && "$TAG" == "$ext" ]]
+          grep -q "^## ${TAG#v}\$" CHANGELOG.md || { echo "CHANGELOG.md has no '## ${TAG#v}' section"; exit 1; }
+
+      - run: npm ci --no-audit --no-fund --omit=optional
+      - run: npm test
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+
+      - name: Package the extension
+        run: npm run package:extension
+
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          # The release notes are this version's CHANGELOG section.
+          awk -v v="## ${TAG#v}" '$0==v{on=1;next} on&&/^## /{exit} on' CHANGELOG.md > notes.md
+          gh release create "$TAG" dist/diarea-extension-*.zip --title "$TAG" --notes-file notes.md --verify-tag
+
+      - name: Move the v0 tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          major="${TAG%%.*}"
+          git tag -f "$major" "$TAG"
+          git push -f origin "refs/tags/$major"

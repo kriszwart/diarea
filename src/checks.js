@@ -43,6 +43,7 @@ function jwtRole(token) {
  *   biggestStateBytes        - number   size of the largest hydration payload
  *   biggestJsonBytes         - number   size of the largest inline application/json
  *   liveMapFound             - boolean  a sibling .map was reachable
+ *   mapFiles                 - string[] paths of .map files found (optional)
  *   hiddenFields             - string[] names of hidden inputs
  *   dataAttrs                - string[] telltale data-* strings
  *   frameworks               - string[] detected framework names
@@ -54,7 +55,7 @@ export function analyse(input = {}) {
     url: "", host: "", origin: "",
     inlineScripts: [], bundles: [], html: "",
     globals: [], biggestStateBytes: 0, biggestJsonBytes: 0,
-    liveMapFound: false, hiddenFields: [], dataAttrs: [],
+    liveMapFound: false, mapFiles: [], hiddenFields: [], dataAttrs: [],
     frameworks: [], networkUrls: [],
     ...input,
   };
@@ -72,11 +73,14 @@ export function analyse(input = {}) {
   // 1. Source maps in production
   const mapRefs = uniq((js.match(/sourceMappingURL=([^\s'"]+)/g) || [])
     .map((s) => s.replace("sourceMappingURL=", "")));
+  // A data: URI is the whole map inlined in the bundle; show that, not the blob.
+  const mapEvidence = uniq(mapRefs.map((r) => (/^data:/i.test(r) ? "inline source map (data: URI)" : pathOf(r)))
+    .concat(i.mapFiles || []));
   if (mapRefs.length || i.liveMapFound) {
     add("source-maps", "crit", "Source maps are published",
       "Source maps hand a reader your original, un-minified source: real file names, comments and logic. This is the single biggest shortcut for anyone rebuilding your product.",
-      "Disable source map output for production builds, or stop serving .map files.",
-      mapRefs.slice(0, 4).map(pathOf));
+      "Disable source map output for production builds, or stop serving .map files. \"Hidden\" source maps still ship if the .map files are deployed.",
+      mapEvidence.slice(0, 4));
   }
 
   // 2. Secrets in client code or markup

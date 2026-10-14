@@ -2,6 +2,15 @@
 
 All notable changes to Diarea. Versions follow [semantic versioning](https://semver.org/); while it is 0.x, a minor bump can add checks that change scores.
 
+## Unreleased
+
+- **Whole build folders.** `diarea scan dist` now reads every script and script map in the folder, not just what `index.html` names. Vite and webpack only name the entry chunk, so lazy routes, preloaded chunks and "hidden" source maps (built without the comment, deployed all the same) were never checked. Page scans also read `<link rel="modulepreload">` files. The walk never leaves the folder or follows symlinks. Scores can rise for builds that were hiding something.
+- **Source maps behind query strings and headers.** Live and extension scans probed `app.js?v=3.map` instead of `app.js.map`, and ignored the `SourceMap` header. Both are fixed, and the map that was found is named in the evidence. An inline (`data:`) source map is reported as one, instead of printing the blob.
+- **No stray browsers.** A live scan that failed to load left Chromium running. The CLI exited anyway, but the long-running MCP server kept one per failed scan. The browser is now always closed, and a page that never goes quiet is no longer loaded twice.
+- **Typos fail loudly.** An unknown option, or `--fail-on` / `--timeout` without a sensible number, is now an error (exit 2) instead of being ignored, which could quietly turn off a CI gate.
+- **Node 22 or later.** Node 20 reached end of life in April 2026. CI tests on 22 and 24, and the Action runs on 22 by default.
+- **Releases in one step.** Pushing a version tag runs `.github/workflows/release.yml`: it checks the tag, `package.json`, the manifest and this changelog agree, runs the tests, publishes to npm with provenance, attaches the extension zip to a GitHub Release and moves the Action's `v0` tag.
+
 ## 0.4.0
 
 - **Let your coding agent fix it.** `diarea mcp` runs an MCP server with one read-only tool, `diarea_scan`, so Claude Code, Cursor and any MCP client can scan your build or site, fix the causes in your code and scan again to prove the score dropped. `diarea setup` registers it with Claude Code; `--project` writes `.mcp.json` for the team; `--print` shows the config for other agents. No new dependencies.

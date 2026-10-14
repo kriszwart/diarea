@@ -113,7 +113,7 @@ The same detection engine runs headless, so you can scan from your terminal and 
 ```
 # a saved page or build output, no browser needed
 npx diarea scan dist/index.html
-npx diarea scan dist              # a build folder means its index.html
+npx diarea scan dist              # a build folder: index.html plus every script in it
 
 # a live site (needs a browser once, see below)
 npx diarea scan https://your-site.com
@@ -128,7 +128,7 @@ npx diarea scan dist --sarif > diarea.sarif
 
 Two modes:
 
-- **Static (jsdom).** Point it at a `.html` file, stdin (`-`), or use `--html`. No browser, fast, safe on untrusted markup (scripts are never run). Reads inline scripts, hydration blobs and the DOM, plus the page's local `<script src>` files and any `.map` beside them, so `dist/index.html` is judged on what it actually ships. It never reads outside that file's folder and never fetches anything. It will not see data that only appears after client-side rendering.
+- **Static (jsdom).** Point it at a `.html` file, stdin (`-`), or use `--html`. No browser, fast, safe on untrusted markup (scripts are never run). Reads inline scripts, hydration blobs and the DOM, plus the page's local `<script src>` and `modulepreload` files and any `.map` beside them. Give it the build folder (`dist`) and it reads every script and script map in it too, because lazy chunks and "hidden" source maps get deployed even though `index.html` never names them. It never reads outside that folder, never follows symlinks and never fetches anything. It will not see data that only appears after client-side rendering.
 - **Live (Playwright).** Point it at a URL. Loads the real page in headless Chromium, so it sees page globals, fetched bundles and the live network map. One-time setup:
 
 ```
@@ -147,7 +147,7 @@ Gate your builds on the Leak Score. Scan your built HTML (no browser needed) or 
 - run: npm ci && npm run build
 - uses: kriszwart/diarea@v0
   with:
-    target: dist/index.html   # or https://your-preview.example.com
+    target: dist              # or dist/index.html, or https://your-preview.example.com
     fail-on: 40               # fail at a score of 40 or more
     strict: true              # also fail on any critical finding
 ```
@@ -170,7 +170,7 @@ We dogfood it: every pull request to this repo gets the Leak Score of our own la
 
 | Input | Default | |
 |---|---|---|
-| `target` | required | A built `.html` file (static) or an `https://` URL (live, installs Chromium) |
+| `target` | required | A build folder such as `dist`, a built `.html` file (both static) or an `https://` URL (live, installs Chromium) |
 | `fail-on` | `40` | Fail at this score or more |
 | `strict` | `false` | Fail on any critical finding |
 | `timeout` | `30000` | Live scan timeout in ms |
@@ -178,7 +178,7 @@ We dogfood it: every pull request to this repo gets the Leak Score of our own la
 | `comment-key` | the target | Keeps comments apart when one workflow scans several targets |
 | `github-token` | `github.token` | Token used to comment |
 | `sarif` | `false` | Also write the findings as SARIF (the `sarif` output) |
-| `node-version` | `20` | Node to run on |
+| `node-version` | `22` | Node to run on |
 
 Outputs: `score`, `band`, `critical`, `report` (path to the JSON report) and `sarif` (path to the SARIF file).
 
@@ -205,7 +205,7 @@ Each check is its own rule (`source-maps`, `secrets`, `client-logic` and so on),
 
 ## Privacy
 
-Everything stays in your browser. Diarea makes no outbound requests of its own, reads only the page you are on, and stores nothing. Permissions are the minimum: `activeTab` (the current tab, only when you click) and `scripting` (to run the scan). Same-origin scripts are read in full; cross-origin bundles are listed but not fetched, exactly as the browser would allow anyone.
+Everything stays in your browser. Diarea sends nothing to us or to any third party and stores nothing. To read what your page ships, it requests that page's own same-origin scripts and probes for their `.map` files, the same requests anyone with DevTools could make, and nothing else. Permissions are the minimum: `activeTab` (the current tab, only when you click) and `scripting` (to run the scan). Same-origin scripts are read in full; cross-origin bundles are listed but not fetched, exactly as the browser would allow anyone.
 
 ## The honest bit
 

@@ -23,18 +23,28 @@ export async function collectPage() {
   await Promise.all(sameOrigin.slice(0, 16).map(async (u) => {
     try {
       const r = await fetch(u, { credentials: "omit" });
-      if (r.ok) bundles.push({ url: u, body: await r.text() });
+      if (!r.ok) return;
+      // A SourceMap header points at a map without leaving a comment in the file.
+      const header = r.headers.get("SourceMap") || r.headers.get("X-SourceMap") || "";
+      bundles.push({ url: u, body: await r.text(), mapHeader: header });
     } catch { /* blocked; skip */ }
   }));
 
-  // Probe a few same-origin bundles for a sibling .map
+  // Probe a few same-origin bundles for a map: the one a SourceMap header
+  // names, or a sibling .map. Query strings and hashes (app.js?v=3) are
+  // dropped first, or the probe would ask for app.js?v=3.map.
   let liveMapFound = false;
+  const mapFiles = [];
   for (const b of bundles.slice(0, 4)) {
     try {
-      const r = await fetch(b.url + ".map", { credentials: "omit" });
-      if (r.ok) { liveMapFound = true; break; }
+      const m = new URL(b.mapHeader || b.url, b.url);
+      if (!b.mapHeader) { m.search = ""; m.hash = ""; m.pathname += ".map"; }
+      if (m.origin !== origin) continue;
+      const r = await fetch(m.href, { credentials: "omit" });
+      if (r.ok) { liveMapFound = true; mapFiles.push(m.pathname); break; }
     } catch {}
   }
+  for (const b of bundles) delete b.mapHeader;
 
   const names = ["__NEXT_DATA__", "__NUXT__", "__APOLLO_STATE__", "__PRELOADED_STATE__",
     "__INITIAL_STATE__", "__remixContext", "__sveltekit", "__REDUX_DEVTOOLS_EXTENSION__"];
@@ -72,7 +82,7 @@ export async function collectPage() {
     ok: true,
     url: location.href, host: location.host, origin,
     inlineScripts, bundles, html: document.documentElement.outerHTML,
-    globals, biggestStateBytes, biggestJsonBytes, liveMapFound,
+    globals, biggestStateBytes, biggestJsonBytes, liveMapFound, mapFiles,
     hiddenFields, dataAttrs, frameworks: fp, networkUrls: [],
     scanned: bundles.length,
     external: externalSrcs.length,

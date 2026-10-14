@@ -2,11 +2,11 @@
 
 Diarea is the defensive agent in an agent-versus-agent world. REA and tools like it read frontends and rebuild features. The plan is to let Diarea fight at every point your code ships, not just in the browser.
 
-## v0 - Scanner (now)
+## v0 - Scanner
 
-A Chrome MV3 extension. Open your own deployed page, click, and get a Leak Score with findings and fixes. Everything local. This is the diagnosis.
+**Done.** A Chrome MV3 extension. Open your own deployed page, click, and get a Leak Score with findings and fixes. Everything local. This is the diagnosis.
 
-**Done:** source maps, client-side secrets, client-side logic, hydration payloads, un-minified code, API surface, hidden fields, stack fingerprint.
+**Checks:** source maps, client-side secrets, client-side logic, hydration payloads, un-minified code, API surface, hidden fields, stack fingerprint, AI system prompts in the bundle and direct calls to AI model APIs.
 
 ## v1 - CLI
 
@@ -14,7 +14,7 @@ A Chrome MV3 extension. Open your own deployed page, click, and get a Leak Score
 npx diarea scan https://your-site.com
 ```
 
-The same checks, headless, in your terminal. Outputs a score and a JSON report. The point is to run it where humans and pipelines already live, not only in a browser popup.
+**Done.** The same checks, headless, in your terminal. Outputs a score and a JSON report (or SARIF). Scans a live URL, a built page or a whole build folder. The point is to run it where humans and pipelines already live, not only in a browser popup.
 
 - Same detection core as the extension, shared in one module.
 - `--json` for machines, a readable table for humans.
@@ -30,6 +30,10 @@ A GitHub Action wrapping the CLI (`action.yml`, see the README).
 - Posts the score as a PR comment, updated on every push, so a regression is visible before merge. **Done.**
 
 This turns "we should harden the frontend" into a check that cannot be forgotten.
+
+## Agents
+
+**Done.** `diarea mcp` is an MCP server with one read-only tool, so a coding agent can scan, fix the causes and scan again. `diarea setup` registers it with Claude Code.
 
 ## v3 - Watcher
 

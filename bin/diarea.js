@@ -14,7 +14,7 @@ diarea ${VERSION}  -  frontend leak scanner (local, read-only)
 Usage:
   diarea scan <url>              Scan a live site (needs Playwright + a browser)
   diarea scan <file.html>        Scan a saved page, no browser
-  diarea scan <folder>           Scan a build folder's index.html (dist/, out/)
+  diarea scan <folder>           Scan a build folder: index.html plus every script (dist/)
   diarea scan --html <file>      Same, explicit
   cat page.html | diarea scan -  Scan HTML from stdin
   diarea setup                   Let your coding agent run Diarea (Claude Code, MCP)
@@ -38,18 +38,34 @@ Examples:
 `;
 
 function parseArgs(argv) {
-  const o = { _: [], json: false, sarif: false, strict: false, color: true, timeout: 30000, failOn: null, html: null };
+  const o = { _: [], json: false, sarif: false, strict: false, color: true, timeout: 30000, failOn: null, html: null, errors: [] };
+  // A flag that needs a value must get one, and numbers must be numbers:
+  // a typo should fail loudly, not quietly turn off a CI gate.
+  const value = (k, name) => {
+    const v = argv[k];
+    if (v === undefined || (v.startsWith("--") && v.length > 2)) o.errors.push(`${name} needs a value.`);
+    return v;
+  };
+  const number = (v, name, min, max) => {
+    const n = Number(v);
+    if (v === undefined || v === "" || !Number.isFinite(n) || n < min || n > max) {
+      if (v !== undefined) o.errors.push(`${name} must be a number from ${min} to ${max}, not "${v}".`);
+      return null;
+    }
+    return n;
+  };
   for (let k = 0; k < argv.length; k++) {
     const a = argv[k];
     if (a === "--json") o.json = true;
     else if (a === "--sarif") o.sarif = true;
     else if (a === "--strict") o.strict = true;
     else if (a === "--no-color") o.color = false;
-    else if (a === "--html") o.html = argv[++k];
-    else if (a === "--fail-on") o.failOn = Number(argv[++k]);
-    else if (a === "--timeout") o.timeout = Number(argv[++k]);
+    else if (a === "--html") o.html = value(++k, "--html");
+    else if (a === "--fail-on") o.failOn = number(value(++k, "--fail-on"), "--fail-on", 0, 100);
+    else if (a === "--timeout") o.timeout = number(value(++k, "--timeout"), "--timeout", 1000, 600000) ?? 30000;
     else if (a === "-h" || a === "--help") o.help = true;
     else if (a === "-v" || a === "--version") o.version = true;
+    else if (a.startsWith("-") && a !== "-") o.errors.push(`Unknown option: ${a}`);
     else o._.push(a);
   }
   return o;
@@ -125,6 +141,8 @@ async function main() {
   }
   if (cmd !== "scan") { console.error(`Unknown command: ${cmd}\n${HELP}`); return 2; }
 
+  if (o.errors.length) { console.error(o.errors.join("\n") + "\n" + HELP); return 2; }
+
   const target = o.html || o._[1];
   if (!target) { console.error("Nothing to scan. Give a URL or a file.\n" + HELP); return 2; }
 
@@ -148,7 +166,7 @@ async function main() {
   }
 
   const hasCrit = result.findings.some((f) => f.sev === "crit");
-  if (o.failOn != null && !Number.isNaN(o.failOn) && score >= o.failOn) return 1;
+  if (o.failOn != null && score >= o.failOn) return 1;
   if (o.strict && hasCrit) return 1;
   return 0;
 }

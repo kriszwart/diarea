@@ -24,35 +24,38 @@ export async function collectLive(url, opts = {}) {
     );
   }
 
+  // Always close the browser, even when navigation or collection throws:
+  // the MCP server is long-lived, so a leaked Chromium would outlast the scan.
   const browser = await chromium.launch();
-  const context = await browser.newContext();
-  const page = await context.newPage();
-
-  const networkUrls = new Set();
-  // Only API traffic counts towards the endpoint map, not the page's own
-  // documents, scripts, styles, fonts and images.
-  const API_TYPES = new Set(["fetch", "xhr", "websocket", "eventsource"]);
-  page.on("request", (req) => {
-    try {
-      if (!API_TYPES.has(req.resourceType())) return;
-      const u = new URL(req.url());
-      if (/^(https?|wss?):$/.test(u.protocol)) networkUrls.add(u.origin + u.pathname);
-    } catch {}
-  });
-
   try {
-    await page.goto(url, { waitUntil: "networkidle", timeout });
-  } catch {
-    // fall back to a lighter wait if the site never goes idle
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
+    const networkUrls = new Set();
+    // Only API traffic counts towards the endpoint map, not the page's own
+    // documents, scripts, styles, fonts and images.
+    const API_TYPES = new Set(["fetch", "xhr", "websocket", "eventsource"]);
+    page.on("request", (req) => {
+      try {
+        if (!API_TYPES.has(req.resourceType())) return;
+        const u = new URL(req.url());
+        if (/^(https?|wss?):$/.test(u.protocol)) networkUrls.add(u.origin + u.pathname);
+      } catch {}
+    });
+
+    // Load once, then give the app a moment to go quiet. Sites that never
+    // go idle (analytics, websockets) are scanned as they are, rather than
+    // being loaded a second time.
     await page.goto(url, { waitUntil: "domcontentloaded", timeout });
+    await page.waitForLoadState("networkidle", { timeout: Math.min(timeout, 15000) }).catch(() => {});
+
+    // Snapshot the page's own traffic first: collectPage fetches bundles and
+    // .map files itself, and those requests are the scanner's, not the site's.
+    const pageTraffic = Array.from(networkUrls);
+    const collected = await page.evaluate(collectPage);
+    collected.networkUrls = pageTraffic;
+    return collected;
+  } finally {
+    await browser.close().catch(() => {});
   }
-
-  // Snapshot the page's own traffic first: collectPage fetches bundles and
-  // .map files itself, and those requests are the scanner's, not the site's.
-  const pageTraffic = Array.from(networkUrls);
-  const collected = await page.evaluate(collectPage);
-
-  await browser.close();
-  collected.networkUrls = pageTraffic;
-  return collected;
 }

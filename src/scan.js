@@ -43,8 +43,10 @@ export async function scan(target, { timeout = 30000, forceStatic = false, cwd =
       input.host = "stdin";
     } else {
       let file = path.resolve(cwd, target);
-      // A build folder (dist/, out/, build/) means its index.html.
-      if (fs.statSync(file, { throwIfNoEntry: false })?.isDirectory()) {
+      // A build folder (dist/, out/, build/) means its index.html, plus every
+      // script in the folder: lazy chunks and source maps deploy with it.
+      const folder = Boolean(fs.statSync(file, { throwIfNoEntry: false })?.isDirectory());
+      if (folder) {
         file = path.join(file, "index.html");
         if (!fs.existsSync(file)) throw new Error(`${target} is a folder with no index.html. Give the page to scan, such as ${path.posix.join(target, "page.html")}.`);
       }
@@ -55,7 +57,7 @@ export async function scan(target, { timeout = 30000, forceStatic = false, cwd =
       const base = "file:///" + (rel.startsWith("..") ? path.basename(file) : rel);
       const html = readPage(file, target);
       if (!looksLikeHtml(html)) throw notHtml(target);
-      input = collectStatic(html, base, { root: path.dirname(file) });
+      input = collectStatic(html, base, { root: path.dirname(file), folder });
       input.host = target;
     }
   }

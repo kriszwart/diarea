@@ -6,7 +6,9 @@ Thanks for helping seal the leaks. This is a small, honest project and contribut
 
 **Detection rules.** The core idea is simple: if an agent can read it from the frontend, Diarea should flag it. New or sharper checks are the highest-value contribution.
 
-Every check lives in `analyse()` in `src/checks.js`, the one detection engine shared by the CLI and the extension. Never copy a rule anywhere else. A check calls `add(sev, title, detail, fix, evidence)`:
+Every check lives in `analyse()` in `src/checks.js`, the one detection engine shared by the CLI and the extension. Never copy a rule anywhere else. A check calls `add(id, sev, title, detail, fix, evidence)`:
+
+- `id` is a short, stable kebab-case name (`source-maps`, `ai-system-prompt`). It becomes the SARIF rule id that GitHub code scanning tracks alerts by, so never rename one once it has shipped.
 
 - `sev` is `"crit"`, `"warn"` or `"info"`.
 - `title` is the short headline shown in the report.

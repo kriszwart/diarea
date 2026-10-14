@@ -13,8 +13,11 @@ import { handle } from "../src/mcp.js";
 import { toSarif } from "../src/sarif.js";
 import { setup, SERVER } from "../src/setup.js";
 import os from "node:os";
+import { spawnSync } from "node:child_process";
+import { scan } from "../src/scan.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+const root0 = () => path.join(here, "..");
 // Fake keys are assembled here, not stored in the fixture, so the repo never
 // holds a string that secret scanners (and GitHub push protection) mistake
 // for a real credential.
@@ -137,6 +140,46 @@ const escape = collectStatic(
   '<script src="//example.invalid/y.js"></script>',
   "file:///fixtures/index.html", { root: path.join(here, "fixtures") });
 check(escape.bundles.length === 0, "never reads scripts outside the scanned folder or over the network");
+
+console.log("Build folders:");
+// A Vite-style dist/: index.html names only the entry chunk and a preload.
+// The lazy route and the "hidden" source map are deployed all the same.
+const dist = fs.mkdtempSync(path.join(os.tmpdir(), "diarea-dist-"));
+fs.mkdirSync(path.join(dist, "assets"));
+fs.writeFileSync(path.join(dist, "index.html"),
+  '<!doctype html><html><head><script type="module" src="/assets/index-a1.js"></script>' +
+  '<link rel="modulepreload" href="/assets/vendor-b2.js"></head><body><div id="app"></div></body></html>');
+fs.writeFileSync(path.join(dist, "assets", "index-a1.js"), "import('./admin-c3.js');");
+fs.writeFileSync(path.join(dist, "assets", "vendor-b2.js"), "export const v=1;");
+fs.writeFileSync(path.join(dist, "assets", "admin-c3.js"), 'export const cfg = { password: "hunter2-but-longer" };');
+fs.writeFileSync(path.join(dist, "assets", "admin-c3.js.map"), "{}");
+const outside = fs.mkdtempSync(path.join(os.tmpdir(), "diarea-outside-"));
+fs.writeFileSync(path.join(outside, "secret.js"), 'export const k = { token: "should-never-be-read-1" };');
+try { fs.symlinkSync(outside, path.join(dist, "linked")); } catch { /* no symlinks here; the guard still holds */ }
+
+const page = collectStatic(fs.readFileSync(path.join(dist, "index.html"), "utf8"), "file:///index.html", { root: dist });
+check(page.bundles.some((b) => b.url === "/assets/vendor-b2.js") && !page.bundles.some((b) => /admin/.test(b.url)),
+  "a page scan reads module preloads, and only what the page names");
+const whole = await scan(path.relative(root0(), dist) || dist, { cwd: root0() });
+const ids = whole.findings.map((f) => f.id);
+check(ids.includes("secrets") && ids.includes("source-maps"), "a folder scan reads lazy chunks and finds hidden source maps");
+check(whole.findings.find((f) => f.id === "source-maps").evidence.includes("/assets/admin-c3.js.map"),
+  "the map file is named in the evidence");
+check(!JSON.stringify(whole).includes("should-never-be-read"), "a folder scan never follows symlinks out of the folder");
+fs.rmSync(dist, { recursive: true, force: true });
+fs.rmSync(outside, { recursive: true, force: true });
+
+const inline = analyse({ inlineScripts: ["x()//# sourceMappingURL=data:application/json;base64," + "A".repeat(500)] })
+  .findings.find((f) => f.id === "source-maps");
+check(inline && inline.evidence[0] === "inline source map (data: URI)", "an inline source map is named, not dumped");
+
+console.log("CLI:");
+const cli = (...args) => spawnSync(process.execPath, [path.join(root0(), "bin/diarea.js"), ...args], { encoding: "utf8", cwd: root0() });
+check(cli("scan", "site/demo", "--jsn").status === 2, "an unknown option is an error, not a target");
+check(cli("scan", "site/demo", "--fail-on", "abc").status === 2, "a non-numeric --fail-on is an error, not a silent pass");
+check(cli("scan", "site/demo", "--fail-on").status === 2, "--fail-on without a value is an error");
+check(cli("scan", "site/demo", "--fail-on", "40").status === 1, "--fail-on still gates");
+check(cli("scan", "test/fixtures/clean.html", "--fail-on", "1").status === 0, "a clean page passes the gate");
 
 console.log("One engine:");
 const read = (...p) => fs.readFileSync(path.join(here, "..", ...p), "utf8");

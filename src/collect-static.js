@@ -4,9 +4,11 @@
  *
  * Scripts are never executed, so this is safe to point at untrusted markup.
  * When given a root directory (scanning a file such as dist/index.html), it
- * also reads the page's local <script src> files and checks for sibling .map
- * files, so build output is judged on what it actually ships. It only reads
- * inside that directory. It will not see data that only appears after
+ * also reads the page's local <script src> and modulepreload files and checks
+ * for sibling .map files. With `folder: true` (scanning a build folder such as
+ * dist/) it reads every script and script map in the folder, since lazy
+ * chunks and hidden source maps deploy too. It only reads inside that
+ * directory and never follows symlinks. It will not see data that only appears after
  * client-side rendering; for a full single-page app, use the live collector.
  */
 import fs from "node:fs";
@@ -15,35 +17,77 @@ import { JSDOM } from "jsdom";
 
 const MAX_BUNDLES = 16;
 const MAX_BUNDLE_BYTES = 5 * 1024 * 1024;
+// A whole build folder: every script it would deploy, within sane limits.
+const MAX_FOLDER_BUNDLES = 300;
+const MAX_FOLDER_BYTES = 60 * 1024 * 1024;
+const SCRIPT_FILE = /\.(?:m|c)?js$/i;
+const SCRIPT_MAP = /\.(?:m|c)?js\.map$/i;
+const SKIP_DIRS = new Set(["node_modules", ".git"]);
 
 // Resolve a script src to a file inside root, or null. Remote and
 // protocol-relative scripts are skipped; nothing leaves the machine.
 function localScriptPath(src, root) {
   if (/^[a-z][a-z0-9+.-]*:|^\/\//i.test(src)) return null;
-  const clean = decodeURIComponent(src.split(/[?#]/)[0]);
+  let clean;
+  try { clean = decodeURIComponent(src.split(/[?#]/)[0]); } catch { return null; }
   const file = path.resolve(root, "." + path.posix.join("/", clean));
   const rel = path.relative(root, file);
   if (rel.startsWith("..") || path.isAbsolute(rel)) return null;
   return file;
 }
 
-function readLocalBundles(scripts, root) {
+const relUrl = (root, file) => "/" + path.relative(root, file).split(path.sep).join("/");
+
+// Every script and script map in a build folder. Vite, webpack and friends
+// only name the entry chunk in index.html; lazy routes, preloaded chunks and
+// "hidden" source maps sit beside it and get deployed all the same.
+// Symlinks are not followed, so the walk never leaves the folder.
+function walkFolder(root) {
+  const scripts = [], maps = [];
+  const stack = [root];
+  while (stack.length) {
+    const dir = stack.pop();
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { continue; }
+    for (const e of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name)) stack.push(full); }
+      else if (e.isFile() && SCRIPT_MAP.test(e.name)) maps.push(full);
+      else if (e.isFile() && SCRIPT_FILE.test(e.name)) scripts.push(full);
+    }
+  }
+  return { scripts: scripts.sort(), maps: maps.sort() };
+}
+
+function readLocalBundles(srcs, root, { folder = false } = {}) {
   const bundles = [];
   const seen = new Set();
-  let liveMapFound = false;
-  for (const el of scripts) {
-    if (bundles.length >= MAX_BUNDLES) break;
-    const src = el.getAttribute("src");
-    const file = src && localScriptPath(src, root);
-    if (!file || seen.has(file)) continue;
+  const mapFiles = [];
+  let total = 0;
+  const limit = folder ? MAX_FOLDER_BUNDLES : MAX_BUNDLES;
+  const read = (file) => {
+    if (bundles.length >= limit || seen.has(file)) return;
     seen.add(file);
     try {
-      if (fs.statSync(file).size > MAX_BUNDLE_BYTES) continue;
-      bundles.push({ url: "/" + path.relative(root, file).split(path.sep).join("/"), body: fs.readFileSync(file, "utf8") });
-      if (fs.existsSync(file + ".map")) liveMapFound = true;
+      const size = fs.statSync(file).size;
+      if (size > MAX_BUNDLE_BYTES || (folder && total + size > MAX_FOLDER_BYTES)) return;
+      total += size;
+      bundles.push({ url: relUrl(root, file), body: fs.readFileSync(file, "utf8") });
+      if (fs.existsSync(file + ".map")) mapFiles.push(relUrl(root, file + ".map"));
     } catch { /* missing or unreadable; skip */ }
+  };
+  // The page's own scripts first, so they are always read.
+  for (const src of srcs) {
+    const file = localScriptPath(src, root);
+    if (file) read(file);
   }
-  return { bundles, liveMapFound };
+  if (folder) {
+    const all = walkFolder(root);
+    for (const file of all.scripts) read(file);
+    for (const m of all.maps) mapFiles.push(relUrl(root, m));
+  }
+  const maps = Array.from(new Set(mapFiles));
+  return { bundles, liveMapFound: maps.length > 0, mapFiles: maps };
 }
 
 const GLOBAL_MARKERS = [
@@ -102,8 +146,13 @@ export function collectStatic(html, baseUrl = "http://localhost/", opts = {}) {
   if (/__sveltekit/.test(serialised)) frameworks.push("Svelte");
   if (/jquery(\.min)?\.js/i.test(serialised)) frameworks.push("jQuery");
 
-  const local = opts.root ? readLocalBundles(scripts.filter((s) => s.src), path.resolve(opts.root))
-    : { bundles: [], liveMapFound: false };
+  // Script tags plus module preloads: Vite names its shared chunks only in
+  // <link rel="modulepreload">.
+  const srcs = scripts.map((el) => el.getAttribute("src"))
+    .concat(Array.from(doc.querySelectorAll('link[rel="modulepreload"][href]'), (el) => el.getAttribute("href")))
+    .filter(Boolean);
+  const local = opts.root ? readLocalBundles(srcs, path.resolve(opts.root), { folder: Boolean(opts.folder) })
+    : { bundles: [], liveMapFound: false, mapFiles: [] };
 
   let origin = "", host = "";
   try { const u = new URL(baseUrl); origin = u.origin; host = u.host; } catch {}
@@ -117,6 +166,7 @@ export function collectStatic(html, baseUrl = "http://localhost/", opts = {}) {
     biggestStateBytes,
     biggestJsonBytes,
     liveMapFound: local.liveMapFound,
+    mapFiles: local.mapFiles,
     hiddenFields,
     dataAttrs,
     frameworks,

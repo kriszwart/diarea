@@ -11,11 +11,15 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Node 20 reached end of life in April 2026.
+        node: [22, 24]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: ${{ matrix.node }}
       - run: npm ci --no-audit --no-fund --omit=optional
       - run: npm test
 
@@ -27,7 +31,7 @@ jobs:
       contents: read
       pull-requests: write # for the Leak Score comment on pull requests
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Clean page passes
         id: clean

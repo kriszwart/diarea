@@ -17,9 +17,9 @@ First real target: revoluAItion (revoluaition.com), a client-rendered app, so th
 ## Architecture
 
 - `src/checks.js` is the single canonical detection engine. Every rule lives here and only here. The CLI and the extension both import it; never duplicate rules elsewhere.
-- `src/collect-static.js` collects page evidence with jsdom (no browser, safe on untrusted markup, good for CI and build output). When scanning a file it also reads that page's local `<script src>` files and sibling `.map` files, only inside the file's own folder. Never execute page scripts or fetch anything in this path.
+- `src/collect-static.js` collects page evidence with jsdom (no browser, safe on untrusted markup, good for CI and build output). When scanning a file it also reads that page's local `<script src>` and `modulepreload` files and sibling `.map` files; when scanning a build folder it reads every script and script map in it (no symlinks followed). Only inside that folder. Never execute page scripts or fetch anything in this path.
 - `src/collect-page.js` is the in-page collector, a self-contained function run inside a real page. The extension (chrome.scripting), the live CLI (`src/collect-live.js`, Playwright) and the landing page (demo iframe) all use it; never write another one.
-- `src/collect-live.js` loads the page with Playwright, runs `collectPage` and adds the network map.
+- `src/collect-live.js` loads the page with Playwright, runs `collectPage` and adds the network map. The browser is always closed in a `finally`, because the MCP server is long-lived.
 - `src/scan.js` runs one scan from target to scored report; the CLI and the MCP server both use it. File scans use project-relative paths so reports never show local folder names.
 - `src/mcp.js` is the MCP server (JSON-RPC over stdio, stdout is protocol only) and `src/setup.js` the `diarea setup` command. Keep the tool read-only and the server instructions defensive.
 - `bin/diarea.js` is the CLI entry point. `src/sarif.js` formats a report as SARIF 2.1.0 (`--sarif`, and the Action's `sarif` input via `scripts/action-sarif.js`); it holds no rules. Every finding has a stable `id`, which is its SARIF rule id: never rename one.
@@ -36,7 +36,7 @@ Ten checks covering things like exposed keys, source maps, un-minified or commen
 
 ## Conventions
 
-- Node 20+, plain ES modules, minimal dependencies.
+- Node 22+, plain ES modules, minimal dependencies.
 - British English in docs and report copy. No em dashes anywhere.
 - Report tone is cheeky but useful; the 💩 stays.
 - Exit codes: 0 clean or under threshold, 1 when score >= `--fail-on`, 2 on tool error.
@@ -62,4 +62,5 @@ node bin/diarea.js scan ./dist/index.html --json
 - [x] Post the score as a PR comment from the Action
 - [x] Publish to npm as `diarea`
 - [x] MCP server and `diarea setup`, so coding agents run it like REA
+- [x] Release workflow: a version tag publishes to npm and GitHub Releases and moves `v0`
 - [ ] Live API watcher

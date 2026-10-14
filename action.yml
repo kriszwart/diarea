@@ -7,7 +7,7 @@ branding:
 
 inputs:
   target:
-    description: "What to scan: a built HTML file (static, no browser) or an https:// URL you own (live, installs Chromium)."
+    description: "What to scan: a build folder such as dist (static, reads every script in it), a built HTML file (static, no browser) or an https:// URL you own (live, installs Chromium)."
     required: true
   fail-on:
     description: "Fail the step when the leak score is this or more (0 to 100). Leave empty to report without failing on score."
@@ -38,9 +38,9 @@ inputs:
     required: false
     default: "false"
   node-version:
-    description: "Node version to run Diarea on (20 or later)."
+    description: "Node version to run Diarea on (22 or later)."
     required: false
-    default: "20"
+    default: "22"
 
 outputs:
   score:
@@ -62,7 +62,7 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v5
       with:
         node-version: ${{ inputs.node-version }}
 
