@@ -12,6 +12,9 @@ import { commentBody, keyOf, movement, previousScore, upsertComment } from "../s
 import { handle } from "../src/mcp.js";
 import { toSarif } from "../src/sarif.js";
 import { setup, SERVER } from "../src/setup.js";
+import { classifyIp, makeGuard } from "../src/guard.js";
+import { saveLogin } from "../src/login.js";
+import { baseDomain, crossOriginScripts, isSourceMap, mapUrlFor } from "../src/cross-origin.js";
 import os from "node:os";
 import { spawnSync } from "node:child_process";
 import { scan } from "../src/scan.js";
@@ -77,8 +80,35 @@ const secretTitles = (js) => analyse({ inlineScripts: [js] }).findings.filter((f
 check(secretTitles('const a = "task-item-description-text-and-more"; const b = "mask-image-linear-gradient-to-bottom"; ' +
   'const c = "risk-indicator-badge-large-and-loud"; const d = "desk_live_ABCdef1234567890ABCD";').length === 0,
   "ordinary words are not mistaken for keys");
+const findingsForSecrets = (js) => analyse({ inlineScripts: [js] }).findings.filter((f) => f.id === "secrets");
 const realShaped = "sk-" + "Ab3dE5gH7jK9mN1pQ3sT5vX7zA9cE1gI3kM5oQ7sU9wY1aC";
 check(secretTitles(`const k = "${realShaped}";`).length === 1, "a real-shaped key is still caught");
+
+// More providers. Every fake is assembled here from a filler, never stored
+// whole, and each must be caught once, under its own name, and redacted.
+const fill = (n) => "aB3dE5gH7jK9mN1pQ3sT5vX7zA9cE1gI3kM5oQ7sU9wY1".repeat(4).slice(0, n);
+const hexFill = (n) => "0123456789abcdef".repeat(4).slice(0, n);
+const PROVIDERS = [
+  ["Anthropic API key", "sk-" + "ant-" + "api03-" + fill(93) + "AA"],
+  ["Stripe restricted key", "rk_" + "live_" + fill(24)],
+  ["GitHub token", "github_" + "pat_" + fill(22) + "_" + fill(59)],
+  ["Hugging Face token", "hf" + "_" + fill(34)],
+  ["Replicate API token", "r8" + "_" + fill(37)],
+  ["SendGrid API key", "S" + "G." + fill(22) + "." + fill(43)],
+  ["Twilio API key SID", "S" + "K" + hexFill(32)],
+];
+for (const [label, value] of PROVIDERS) {
+  const found = findingsForSecrets(`const k = "${value}";`);
+  const ev = found.length === 1 ? found[0].evidence : [];
+  check(ev.length === 1 && ev[0].startsWith(label + ":") && !JSON.stringify(found).includes(value.slice(0, 12)),
+    `${label} is caught once and redacted`);
+}
+const pemBody = fill(64);
+const pem = findingsForSecrets(`const k = "-----BEGIN PRIVATE KEY-----\\n${pemBody}\\n-----END PRIVATE KEY-----";`);
+check(pem.length === 1 && pem[0].sev === "crit" && pem[0].evidence[0] === "Private key (PEM block): -----BEGIN PRIVATE KEY-----" &&
+  !JSON.stringify(pem).includes(pemBody.slice(0, 8)), "a PEM private key is critical, and none of the key is shown");
+check(findingsForSecrets('if (s.indexOf("-----BEGIN RSA PRIVATE KEY-----") === 0) parse(s);').length === 0,
+  "a PEM header on its own (a crypto library) is not a key");
 
 // Regression from the second real scan: a public anon JWT, a property name
 // ("access_token") and minified code were all reported as secrets.
@@ -181,8 +211,30 @@ check(cli("scan", "site/demo", "--fail-on").status === 2, "--fail-on without a v
 check(cli("scan", "site/demo", "--fail-on", "40").status === 1, "--fail-on still gates");
 check(cli("scan", "test/fixtures/clean.html", "--fail-on", "1").status === 0, "a clean page passes the gate");
 
-console.log("One engine:");
 const read = (...p) => fs.readFileSync(path.join(here, "..", ...p), "utf8");
+console.log("The site's own CDN:");
+check(baseDomain("cdn.example.com") === "example.com" && baseDomain("static.shop.example.co.uk") === "example.co.uk" &&
+  baseDomain("assets.example.com.my") === "example.com.my" && baseDomain("localhost") === "localhost", "registrable domains, near enough");
+const xo = crossOriginScripts("https://www.example.com/app", [
+  "/assets/same.js", "https://www.example.com/x.js",
+  "https://cdn.example.com/a.js", "https://cdn.example.com/b.js?v=2", "https://d1234.cloudfront.net/c.js",
+  "https://www.googletagmanager.com/gtm.js", "https://js.stripe.com/v3", "https://cdn.jsdelivr.net/npm/lib.js",
+]);
+check(xo.related.map((g) => g.origin).join() === "https://cdn.example.com,https://d1234.cloudfront.net" &&
+  xo.related[0].urls.length === 2, "the site's own CDN and hosting CDNs are offered");
+check(xo.other.length === 3 && !xo.related.some((g) => /stripe|googletagmanager|jsdelivr/.test(g.origin)),
+  "third-party scripts are never offered");
+check(mapUrlFor("https://cdn.example.com/app.js?v=3#x") === "https://cdn.example.com/app.js.map" &&
+  mapUrlFor("https://cdn.example.com/a/app.js", "/maps/app.map") === "https://cdn.example.com/maps/app.map",
+  "map URLs drop query strings and follow the SourceMap header");
+check(isSourceMap('{"version":3,"sources":["a.ts"],"mappings":"AA"}') && isSourceMap(")]}'\n{\"version\":3,\"sources\":[]}") &&
+  !isSourceMap("<!doctype html><html>app shell</html>") && !isSourceMap(""), "a single-page app's HTML fallback is not a source map");
+const manifest = JSON.parse(read("extension/manifest.json"));
+check(manifest.permissions.join() === "activeTab,scripting" && !manifest.host_permissions &&
+  JSON.stringify(manifest.optional_host_permissions) === '["https://*/*","http://*/*"]',
+  "the extension asks for no sites up front; CDN access is optional and per site");
+
+console.log("One engine:");
 const RULE_COPY = /sk_live_|sourceMappingURL=|function analyse|secretRules|logicTerms/;
 for (const [name, file] of [["extension popup", "extension/popup.js"], ["landing page", "site/landing.js"]]) {
   const src = read(file);
@@ -275,6 +327,55 @@ const noIndex = (await rpc(9, "tools/call", { name: "diarea_scan", arguments: { 
 check(noIndex.isError === true && /no index\.html/.test(noIndex.content[0].text), "a folder without index.html is an error");
 check((await handle({ jsonrpc: "2.0", method: "notifications/initialized" }, {})) === null, "notifications get no reply");
 
+console.log("Agent guard rails:");
+const toolCall = async (args, opts = {}) => (await handle({ jsonrpc: "2.0", id: 20, method: "tools/call", params: { name: "diarea_scan", arguments: args } },
+  { version: "test", cwd: root, ...opts })).result;
+const outsideFile = path.join(os.tmpdir(), "diarea-outside-" + process.pid + ".html");
+fs.writeFileSync(outsideFile, "<html><body>outside</body></html>");
+let refused = await toolCall({ target: outsideFile });
+check(refused.isError && /outside this project/.test(refused.content[0].text) && !refused.content[0].text.includes(root),
+  "a file outside the project is refused");
+check((await toolCall({ target: "../../../../../../etc/hosts" })).isError, "a path climbing out of the project is refused");
+const linkInside = path.join(root, "test", "fixtures", ".link-out-" + process.pid + ".html");
+let linked = false;
+try { fs.symlinkSync(outsideFile, linkInside); linked = true; } catch {}
+if (linked) {
+  refused = await toolCall({ target: path.relative(root, linkInside) });
+  check(refused.isError && /outside this project/.test(refused.content[0].text), "a symlink out of the project is refused");
+  fs.rmSync(linkInside, { force: true });
+}
+fs.rmSync(outsideFile, { force: true });
+check((await toolCall({ target: "-" })).isError, "stdin (the protocol channel) is never read as a page");
+for (const url of ["http://127.0.0.1:3000/", "http://localhost/", "http://192.168.1.10/", "http://[::1]/", "http://2130706433/"]) {
+  refused = await toolCall({ target: url });
+  check(refused.isError && /private network/.test(refused.content[0].text) && /--allow-private/.test(refused.content[0].text),
+    `${url} is refused unless private addresses are allowed`);
+}
+for (const url of ["http://169.254.169.254/latest/meta-data/", "http://metadata.google.internal/", "http://[fd00:ec2::254]/"]) {
+  refused = await toolCall({ target: url }, { allowPrivate: true });
+  check(refused.isError && /metadata/.test(refused.content[0].text), `${url} is refused even with --allow-private`);
+}
+refused = await toolCall({ target: "https://example.test/", storage_state: "../../login.json" });
+check(refused.isError && /outside this project/.test(refused.content[0].text), "a saved login outside the project is refused");
+check((await toolCall({ target: "site/demo", storage_state: "x.json" })).isError, "a saved login only applies to live scans");
+check(["10.0.0.1", "172.16.5.4", "100.64.1.1", "fc00::1", "::ffff:10.0.0.1"].every((ip) => classifyIp(ip) === "private") &&
+  ["169.254.169.254", "fe80::1", "64:ff9b::a9fe:a9fe"].every((ip) => classifyIp(ip) === "metadata") &&
+  ["8.8.8.8", "172.32.0.1", "2606:4700::1111"].every((ip) => classifyIp(ip) === "public"),
+  "addresses are sorted into public, private and metadata");
+const rebind = makeGuard({ lookup: async () => [{ address: "93.184.216.34" }, { address: "10.0.0.5" }] });
+check(await rebind("https://looks-public.test/").then(() => false, (e) => /private network/.test(e.message)),
+  "a public name that also resolves to a private address is refused");
+const pub = makeGuard({ lookup: async () => [{ address: "93.184.216.34" }] });
+check(await pub("https://example.test/app.js").then(() => true, () => false), "a public site is allowed");
+
+console.log("Saved logins:");
+const loginDir = fs.mkdtempSync(path.join(os.tmpdir(), "diarea-login-"));
+const savedTo = saveLogin(".diarea/login.json", { cookies: [], origins: [] }, { cwd: loginDir });
+check((fs.statSync(savedTo).mode & 0o777) === 0o600 || process.platform === "win32", "a saved login is readable by its owner only");
+check(fs.readFileSync(path.join(loginDir, ".diarea", ".gitignore"), "utf8").includes("*"), "the .diarea folder keeps itself out of git");
+fs.rmSync(loginDir, { recursive: true, force: true });
+check(cli("scan", "site/demo", "--storage-state", "x.json").status === 2, "--storage-state on a file scan is an error");
+
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "diarea-setup-"));
 fs.writeFileSync(path.join(tmp, ".mcp.json"), JSON.stringify({ mcpServers: { other: { command: "x" } } }));
 setup(["--project"], { cwd: tmp, log: () => {} });
@@ -283,6 +384,9 @@ check(written.mcpServers.other && JSON.stringify(written.mcpServers.diarea) === 
 const calls = [];
 setup([], { log: () => {}, run: (cmd, args) => { calls.push(args.join(" ")); return { status: 0, stdout: "", stderr: "" }; } });
 check(calls[1] === "mcp add --scope user diarea -- npx -y diarea@latest mcp", "setup registers with Claude Code at user scope");
+calls.length = 0;
+setup(["--allow-private"], { log: () => {}, run: (cmd, args) => { calls.push(args.join(" ")); return { status: 0, stdout: "", stderr: "" }; } });
+check(calls[1] === "mcp add --scope user diarea -- npx -y diarea@latest mcp --allow-private", "setup --allow-private opts the server in, explicitly");
 fs.rmSync(tmp, { recursive: true, force: true });
 
 console.log(failed === 0

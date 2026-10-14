@@ -189,6 +189,16 @@ main::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
   font-size: 10.5px; color: var(--ink-faint); line-height: 1.6;
 }
 
+/* The site's own CDN scripts, not yet readable */
+.cdn-offer {
+  margin: 14px 0; padding: 12px 13px; border: 1px dashed var(--amber); border-radius: 10px;
+  color: var(--ink-dim); font-size: 11.5px;
+}
+.cdn-offer p { margin: 0 0 9px; }
+.cdn-offer b { color: var(--ink); }
+.cdn-offer .small { margin: 9px 0 0; font-size: 10px; color: var(--ink-faint); }
+.read-note { font-size: 10px; color: var(--ink-faint); margin: 10px 0 0; text-align: center; }
+
 /* Footer */
 .footer {
   display: flex; align-items: center; justify-content: space-between;

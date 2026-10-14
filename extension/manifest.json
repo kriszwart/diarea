@@ -22,5 +22,9 @@
   "permissions": [
     "activeTab",
     "scripting"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
   ]
 }

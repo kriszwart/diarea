@@ -19,6 +19,8 @@ const PACKAGES = [
   "react-dom@18.3.1", "vue@3.5.12", "jquery@3.7.1", "lodash@4.17.21", "three@0.169.0",
   "axios@1.7.7", "socket.io-client@4.8.0", "@supabase/supabase-js@2.45.4", "firebase@10.14.1",
   "@stripe/stripe-js@4.8.0", "@clerk/clerk-js@5.26.0", "posthog-js@1.167.0",
+  // Crypto libraries carry PEM headers as format strings, not keys.
+  "node-forge@1.3.1", "jose@5.9.6",
 ];
 const EXPECTED = /source maps|not minified/i;
 

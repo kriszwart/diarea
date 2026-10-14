@@ -25,15 +25,26 @@ function readPage(file, target) {
 
 /**
  * @param {string} target  URL, file path, or "-" for stdin
- * @param {{timeout?: number, forceStatic?: boolean, cwd?: string, stdin?: string}} opts
+ * @param {{timeout?: number, forceStatic?: boolean, cwd?: string, stdin?: string,
+ *          storageState?: string, guard?: (url: string) => Promise<void>}} opts
+ *   storageState  saved login (Playwright storage state) for live scans
+ *   guard         network guard for live scans (the MCP server passes one)
  * @returns {Promise<{url, host, findings, score, band, mode}>}
  */
-export async function scan(target, { timeout = 30000, forceStatic = false, cwd = process.cwd(), stdin } = {}) {
+export async function scan(target, { timeout = 30000, forceStatic = false, cwd = process.cwd(), stdin, storageState, guard } = {}) {
   let input, mode;
   if (isUrl(target) && !forceStatic) {
     mode = "live (playwright)";
+    let state;
+    if (storageState) {
+      state = path.resolve(cwd, storageState);
+      if (!fs.statSync(state, { throwIfNoEntry: false })?.isFile()) {
+        throw new Error(`${storageState} does not exist. Save a login first: diarea login ${target}`);
+      }
+      mode = "live (playwright, logged in)";
+    }
     const { collectLive } = await import("./collect-live.js");
-    input = await collectLive(target, { timeout });
+    input = await collectLive(target, { timeout, storageState: state, guard });
   } else {
     mode = "static (jsdom)";
     if (target === "-") {

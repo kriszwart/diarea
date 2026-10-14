@@ -65,10 +65,14 @@ function readLocalBundles(srcs, root, { folder = false } = {}) {
   const mapFiles = [];
   let total = 0;
   const limit = folder ? MAX_FOLDER_BUNDLES : MAX_BUNDLES;
+  const realRoot = fs.realpathSync(root);
   const read = (file) => {
     if (bundles.length >= limit || seen.has(file)) return;
     seen.add(file);
     try {
+      // A script named by the page could be a symlink out of the folder.
+      const rel = path.relative(realRoot, fs.realpathSync(file));
+      if (rel.startsWith("..") || path.isAbsolute(rel)) return;
       const size = fs.statSync(file).size;
       if (size > MAX_BUNDLE_BYTES || (folder && total + size > MAX_FOLDER_BYTES)) return;
       total += size;

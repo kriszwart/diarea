@@ -41,7 +41,12 @@ export async function collectPage() {
       if (!b.mapHeader) { m.search = ""; m.hash = ""; m.pathname += ".map"; }
       if (m.origin !== origin) continue;
       const r = await fetch(m.href, { credentials: "omit" });
-      if (r.ok) { liveMapFound = true; mapFiles.push(m.pathname); break; }
+      // Single-page apps often answer any path with index.html, so a 200 is
+      // not enough: it has to be a source map (JSON with a "sources" list).
+      const body = r.ok ? await r.text() : "";
+      if (/^\s*(?:\)\]\}'[^\n]*\n)?\s*\{/.test(body) && /"sources"\s*:/.test(body)) {
+        liveMapFound = true; mapFiles.push(m.pathname); break;
+      }
     } catch {}
   }
   for (const b of bundles) delete b.mapHeader;
@@ -86,5 +91,8 @@ export async function collectPage() {
     hiddenFields, dataAttrs, frameworks: fp, networkUrls: [],
     scanned: bundles.length,
     external: externalSrcs.length,
+    // Every script URL, so the caller can read the site's own CDN scripts,
+    // which this page context cannot fetch across origins.
+    scriptSrcs: externalSrcs.slice(0, 200),
   };
 }

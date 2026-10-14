@@ -4,7 +4,7 @@
  */
 import fs from "node:fs";
 import { scoreOf, bandOf, SEV_ORDER } from "../src/checks.js";
-import { scan } from "../src/scan.js";
+import { scan, isUrl } from "../src/scan.js";
 
 const VERSION = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
@@ -17,9 +17,11 @@ Usage:
   diarea scan <folder>           Scan a build folder: index.html plus every script (dist/)
   diarea scan --html <file>      Same, explicit
   cat page.html | diarea scan -  Scan HTML from stdin
+  diarea login <url>             Log in once in a real browser and save it, to scan pages behind a login
   diarea setup                   Let your coding agent run Diarea (Claude Code, MCP)
   diarea setup --project         ...for everyone on this project (.mcp.json)
   diarea setup --print           Show the MCP config for other agents
+  diarea setup --allow-private   ...and let the agent scan localhost and private networks
   diarea mcp                     Run the MCP server (agents start this for you)
 
 Options:
@@ -28,6 +30,7 @@ Options:
   --fail-on <n>      Exit 1 if the leak score is n or more (for CI)
   --strict           Exit 1 if any critical finding is present
   --timeout <ms>     Navigation timeout for live scans (default 30000)
+  --storage-state <file>  Scan as a logged-in user (a file saved by diarea login)
   --no-color         Disable colour
   -h, --help         Show this help
   -v, --version      Show version
@@ -35,10 +38,12 @@ Options:
 Examples:
   diarea scan https://your-site.com --fail-on 40
   diarea scan --html dist/index.html --json
+  diarea login https://your-site.com/login
+  diarea scan https://your-site.com/dashboard --storage-state .diarea/login.json
 `;
 
 function parseArgs(argv) {
-  const o = { _: [], json: false, sarif: false, strict: false, color: true, timeout: 30000, failOn: null, html: null, errors: [] };
+  const o = { _: [], json: false, sarif: false, strict: false, color: true, timeout: 30000, failOn: null, html: null, storageState: null, errors: [] };
   // A flag that needs a value must get one, and numbers must be numbers:
   // a typo should fail loudly, not quietly turn off a CI gate.
   const value = (k, name) => {
@@ -61,6 +66,7 @@ function parseArgs(argv) {
     else if (a === "--strict") o.strict = true;
     else if (a === "--no-color") o.color = false;
     else if (a === "--html") o.html = value(++k, "--html");
+    else if (a === "--storage-state") o.storageState = value(++k, "--storage-state");
     else if (a === "--fail-on") o.failOn = number(value(++k, "--fail-on"), "--fail-on", 0, 100);
     else if (a === "--timeout") o.timeout = number(value(++k, "--timeout"), "--timeout", 1000, 600000) ?? 30000;
     else if (a === "-h" || a === "--help") o.help = true;
@@ -132,8 +138,15 @@ async function main() {
   const cmd = o._[0];
   if (cmd === "mcp") {
     const { serve } = await import("../src/mcp.js");
-    serve({ version: VERSION });
+    const argv = process.argv.slice(3);
+    // Only whoever configures the server can allow private addresses, never the agent.
+    const allowPrivate = argv.includes("--allow-private") || process.env.DIAREA_ALLOW_PRIVATE === "1";
+    serve({ version: VERSION, allowPrivate });
     return null; // keep running until the agent closes stdin
+  }
+  if (cmd === "login") {
+    const { login } = await import("../src/login.js");
+    return login(process.argv.slice(3));
   }
   if (cmd === "setup") {
     const { setup } = await import("../src/setup.js");
@@ -149,7 +162,8 @@ async function main() {
   const s = makeStyle(o.color && process.stdout.isTTY && !process.env.NO_COLOR);
   let result;
   try {
-    result = await scan(target, { timeout: o.timeout, forceStatic: Boolean(o.html) });
+    if (o.storageState && (o.html || !isUrl(target))) throw new Error("--storage-state only applies to live scans of a URL.");
+    result = await scan(target, { timeout: o.timeout, forceStatic: Boolean(o.html), storageState: o.storageState });
   } catch (err) {
     console.error(`\n  ${s.crit("Could not scan.")} ${err.message}\n`);
     return 2;

@@ -79,7 +79,7 @@ Diarea scans the web page in the current tab for information its frontend expose
 
 - `activeTab`: `Diarea scans only the tab the user is looking at, and only after the user clicks the extension icon. activeTab grants that one-off access without needing permission for any website.`
 - `scripting`: `Used to run Diarea's read-only scan inside the current tab when the user clicks the icon, so it can read the page's scripts, markup and page globals. It never modifies the page.`
-- Host permissions: none requested.
+- Optional host permissions (`https://*/*`, `http://*/*`): `Nothing is granted at install. When a scanned page loads its own scripts from a CDN (for example cdn.example.com for www.example.com), the popup offers to read them, and only if the user clicks does Chrome ask for that one site. Diarea then fetches those script files as text, without cookies, to scan them like the page's own scripts. Third-party scripts are never offered or read.`
 
 **Remote code**: No, I am not using remote code. (All JavaScript ships in the package; the scan re-reads the page's own scripts as text and never executes code from anywhere else.)
 
@@ -104,7 +104,7 @@ Diarea scans the web page in the current tab for information its frontend expose
 1. `npm run package:extension` and upload the zip.
 2. Paste the fields above and upload the images.
 3. A one-off developer registration fee applies to new Chrome Web Store developer accounts.
-4. Review usually takes from a few days to a couple of weeks. Narrow permissions (no host permissions, no remote code) tend to help.
+4. Review usually takes from a few days to a couple of weeks. Narrow permissions (no host permissions at install, only optional ones asked for per site, and no remote code) tend to help.
 
 ## Regenerating the images
 

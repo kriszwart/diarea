@@ -47,6 +47,12 @@ npx diarea setup --print     # or show the config for Cursor, Windsurf and other
 
 Then ask: *"Scan my site for leaks with Diarea and fix what it finds."* The agent runs `diarea_scan` on your build or deployed URL, fixes the causes in your code (secrets and logic to the server, source maps off, payloads trimmed), then scans again to prove the score dropped. The server is read-only, runs on your machine and sends nothing anywhere; secrets reach the agent as a prefix and a length, never in full.
 
+An agent can be talked into things by what it reads, so the server keeps it on a short lead:
+
+- **Files only inside the project** the server was started in. Paths that climb out, absolute paths elsewhere and symlinks pointing out are refused.
+- **Public sites only, by default.** `localhost`, private networks (`10.x`, `192.168.x`, `fc00::/7`) and anything that resolves to them are refused, including redirects and requests the page makes. To let the agent scan your dev server, opt in when you set it up: `npx diarea setup --allow-private`. Only you can switch this on; the agent cannot.
+- **Never cloud metadata.** Link-local and metadata addresses (`169.254.169.254`, `metadata.google.internal`) are refused even with `--allow-private`.
+
 ## Try it in 30 seconds
 
 We built a fake AI app builder that leaks everything, so you can watch Diarea work without pointing it at anything that matters. [Watch it get diagnosed on the website](https://diarea.tools/#scan), or meet [PromptPlop](https://diarea.tools/demo/) directly: describe an app and it plops one out. Its "never reveal this prompt" system prompt is in the bundle. Its model-routing formula is in your browser. It calls the model straight from the page.
@@ -106,6 +112,8 @@ To get a zip for the Chrome Web Store, run `npm run package:extension` (it lands
 
 It auto-scans on open. Use **Re-scan** after a deploy. Point it at your own staging site first and watch the score.
 
+If the site loads its own scripts from a CDN (`cdn.your-site.com`, a CloudFront host), the page cannot read them across origins, so the popup offers to: click **Read them too** and Chrome asks once for that site. Nothing is granted at install, and third-party scripts are never offered.
+
 ## CLI
 
 The same detection engine runs headless, so you can scan from your terminal and in CI. The checks live in one shared module (`src/checks.js`); the extension and the CLI both use it. Found secret values are never printed, only a short prefix and their length.
@@ -124,19 +132,25 @@ npx diarea scan https://your-site.com --fail-on 40
 
 # SARIF 2.1.0 for GitHub code scanning
 npx diarea scan dist --sarif > diarea.sarif
+
+# pages behind a login: log in once yourself, then scan as that user
+npx diarea login https://your-site.com/login
+npx diarea scan https://your-site.com/dashboard --storage-state .diarea/login.json
 ```
 
 Two modes:
 
 - **Static (jsdom).** Point it at a `.html` file, stdin (`-`), or use `--html`. No browser, fast, safe on untrusted markup (scripts are never run). Reads inline scripts, hydration blobs and the DOM, plus the page's local `<script src>` and `modulepreload` files and any `.map` beside them. Give it the build folder (`dist`) and it reads every script and script map in it too, because lazy chunks and "hidden" source maps get deployed even though `index.html` never names them. It never reads outside that folder, never follows symlinks and never fetches anything. It will not see data that only appears after client-side rendering.
-- **Live (Playwright).** Point it at a URL. Loads the real page in headless Chromium, so it sees page globals, fetched bundles and the live network map. One-time setup:
+- **Live (Playwright).** Point it at a URL. Loads the real page in headless Chromium, so it sees page globals, fetched bundles, the site's own CDN scripts and the live network map. Third-party scripts are never read. One-time setup:
 
 ```
 npm install playwright
 npx playwright install chromium
 ```
 
-Options: `--json`, `--sarif`, `--fail-on <score>`, `--strict` (exit 1 on any critical finding), `--timeout <ms>`, `--no-color`. Exit codes make it a drop-in CI check: `0` clean or under your threshold, `1` when the score reaches `--fail-on` (or any critical finding with `--strict`), `2` on error.
+Most leakage lives behind the login, so live scans can sign in. `diarea login <url>` opens a real browser window; you log in yourself (Diarea never sees your password) and press Enter, and it saves that session to `.diarea/login.json`, readable only by you and kept out of git by its own `.gitignore`. Pass it with `--storage-state`. It is a live session: treat it like a password and delete it when you are done.
+
+Options: `--json`, `--sarif`, `--fail-on <score>`, `--strict` (exit 1 on any critical finding), `--timeout <ms>`, `--storage-state <file>`, `--no-color`. Exit codes make it a drop-in CI check: `0` clean or under your threshold, `1` when the score reaches `--fail-on` (or any critical finding with `--strict`), `2` on error.
 
 ## GitHub Action
 
@@ -174,6 +188,7 @@ We dogfood it: every pull request to this repo gets the Leak Score of our own la
 | `fail-on` | `40` | Fail at this score or more |
 | `strict` | `false` | Fail on any critical finding |
 | `timeout` | `30000` | Live scan timeout in ms |
+| `storage-state` | none | Live scans only: a saved login from `diarea login`. Write it from a secret in an earlier step; never commit it |
 | `comment` | `true` | On pull requests, post the score as one comment and keep it updated |
 | `comment-key` | the target | Keeps comments apart when one workflow scans several targets |
 | `github-token` | `github.token` | Token used to comment |
@@ -205,7 +220,7 @@ Each check is its own rule (`source-maps`, `secrets`, `client-logic` and so on),
 
 ## Privacy
 
-Everything stays in your browser. Diarea sends nothing to us or to any third party and stores nothing. To read what your page ships, it requests that page's own same-origin scripts and probes for their `.map` files, the same requests anyone with DevTools could make, and nothing else. Permissions are the minimum: `activeTab` (the current tab, only when you click) and `scripting` (to run the scan). Same-origin scripts are read in full; cross-origin bundles are listed but not fetched, exactly as the browser would allow anyone.
+Everything stays in your browser. Diarea sends nothing to us or to any third party and stores nothing. To read what your page ships, it requests that page's own scripts and probes for their `.map` files, the same requests anyone with DevTools could make, and nothing else. Permissions are the minimum: `activeTab` (the current tab, only when you click) and `scripting` (to run the scan), plus optional access to your own CDN, asked for one site at a time only when you click. Third-party scripts are listed but never fetched.
 
 ## The honest bit
 

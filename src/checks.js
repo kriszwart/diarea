@@ -88,21 +88,34 @@ export function analyse(input = {}) {
   // keys that are random strings must look random: digits plus both cases.
   const B = "(?<![A-Za-z0-9_-])";
   const looksRandom = (v) => /[0-9]/.test(v) && /[A-Z]/.test(v) && /[a-z]/.test(v);
+  // `random` is the prefix to strip before checking the rest looks random.
   const secretRules = [
-    { re: new RegExp(B + "sk_live_[0-9a-zA-Z]{16,}", "g"), label: "Stripe secret key", sev: "crit", random: true },
-    { re: new RegExp(B + "sk-(?:proj-|svcacct-|admin-)?[A-Za-z0-9_-]{32,}", "g"), label: "OpenAI-style secret key", sev: "crit", random: true },
+    // A PEM header alone is just a format string (crypto libraries parse them),
+    // so a real key needs its base64 body after the header.
+    { re: /-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED |PGP )?PRIVATE KEY(?: BLOCK)?-----(?:\s|\\[rn])*[A-Za-z0-9+/=]{40,}/g, label: "Private key (PEM block)", sev: "crit", pem: true },
+    { re: new RegExp(B + "sk_live_[0-9a-zA-Z]{16,}", "g"), label: "Stripe secret key", sev: "crit", random: /^sk_live_/ },
+    { re: new RegExp(B + "rk_live_[0-9a-zA-Z]{16,}", "g"), label: "Stripe restricted key", sev: "crit", random: /^rk_live_/ },
+    { re: new RegExp(B + "sk-ant-(?:api|admin)\\d{2}-[A-Za-z0-9_-]{80,}", "g"), label: "Anthropic API key", sev: "crit", random: /^sk-ant-(?:api|admin)\d{2}-/ },
+    { re: new RegExp(B + "sk-(?!ant-)(?:proj-|svcacct-|admin-)?[A-Za-z0-9_-]{32,}", "g"), label: "OpenAI-style secret key", sev: "crit", random: /^sk-(?:proj-|svcacct-|admin-)?/ },
     { re: new RegExp(B + "AKIA[0-9A-Z]{16}(?![0-9A-Z])", "g"), label: "AWS access key id", sev: "crit" },
     { re: new RegExp(B + "AIza[0-9A-Za-z_-]{35}", "g"), label: "Google API key", sev: "warn" },
     { re: new RegExp(B + "xox[baprs]-[0-9A-Za-z-]{10,}", "g"), label: "Slack token", sev: "crit" },
-    { re: new RegExp(B + "gh[pousr]_[A-Za-z0-9]{30,}", "g"), label: "GitHub token", sev: "crit", random: true },
+    { re: new RegExp(B + "gh[pousr]_[A-Za-z0-9]{30,}", "g"), label: "GitHub token", sev: "crit", random: /^gh[pousr]_/ },
+    { re: new RegExp(B + "github_pat_[A-Za-z0-9_]{60,}", "g"), label: "GitHub token", sev: "crit", random: /^github_pat_/ },
+    { re: new RegExp(B + "hf_[A-Za-z0-9]{34}(?![A-Za-z0-9])", "g"), label: "Hugging Face token", sev: "crit", random: /^hf_/ },
+    { re: new RegExp(B + "r8_[A-Za-z0-9]{37}(?![A-Za-z0-9])", "g"), label: "Replicate API token", sev: "crit", random: /^r8_/ },
+    { re: new RegExp(B + "SG\\.[A-Za-z0-9_-]{22}\\.[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])", "g"), label: "SendGrid API key", sev: "crit" },
+    // A Twilio API key SID is not the secret itself, but its secret is never far away.
+    { re: new RegExp(B + "SK[0-9a-f]{32}(?![0-9A-Za-z])", "g"), label: "Twilio API key SID", sev: "warn" },
     { re: new RegExp(B + "eyJ[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{6,}", "g"), label: "JWT / bearer token", sev: "warn", jwt: true },
-    { re: new RegExp(B + "sk_test_[0-9a-zA-Z]{16,}", "g"), label: "Stripe test secret key", sev: "warn", random: true },
+    { re: new RegExp(B + "sk_test_[0-9a-zA-Z]{16,}", "g"), label: "Stripe test secret key", sev: "warn", random: /^sk_test_/ },
+    { re: new RegExp(B + "rk_test_[0-9a-zA-Z]{16,}", "g"), label: "Stripe test restricted key", sev: "warn", random: /^rk_test_/ },
   ];
   const secretHits = [];
   const anonKeys = [];
   for (const rule of secretRules) {
     for (const h of uniq(haystack.match(rule.re) || [])) {
-      if (rule.random && !looksRandom(h.replace(/^(sk_live_|sk_test_|sk-(?:proj-|svcacct-|admin-)?|gh[pousr]_)/, ""))) continue;
+      if (rule.random && !looksRandom(h.replace(rule.random, ""))) continue;
       if (rule.jwt) {
         // Read only the role claim, locally. Public "anon" keys (Supabase and
         // similar) are meant for the browser; a "service_role" key never is.
@@ -110,6 +123,8 @@ export function analyse(input = {}) {
         if (role === "anon") { anonKeys.push(h); continue; }
         if (role === "service_role") { secretHits.push({ sev: "crit", label: "Service-role JWT (full database access)", value: h }); continue; }
       }
+      // For a PEM block, show its header (a format name, not a secret) and nothing of the key.
+      if (rule.pem) { secretHits.push({ sev: rule.sev, label: rule.label, value: h, shown: h.slice(0, h.indexOf("-----", 5) + 5) }); continue; }
       secretHits.push({ sev: rule.sev, label: rule.label, value: h });
     }
   }
@@ -133,9 +148,9 @@ export function analyse(input = {}) {
     const anyCrit = secretHits.some((s) => s.sev === "crit");
     add("secrets", anyCrit ? "crit" : "warn",
       secretHits.length + " possible secret" + (secretHits.length > 1 ? "s" : "") + " in client code",
-      "Credentials in shipped JavaScript or markup are readable by anyone, no tooling required. Publishable keys (pk_) are fine. Secret keys and tokens are not.",
-      "Move secret keys behind your server. The browser should only ever hold publishable keys.",
-      secretHits.slice(0, 5).map((s) => s.label + ": " + redact(s.value)));
+      "Credentials in shipped JavaScript or markup are readable by anyone, no tooling required. Publishable keys (pk_) are fine. Secret keys, tokens and private keys are not.",
+      "Rotate the exposed keys, then move them behind your server. The browser should only ever hold publishable keys.",
+      secretHits.slice(0, 5).map((s) => s.label + ": " + (s.shown || redact(s.value))));
   }
 
   if (anonKeys.length) {

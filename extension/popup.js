@@ -1,11 +1,50 @@
 /* Diarea - frontend leak scanner (extension popup)
  * Everything runs locally. collectPage() is injected into the active tab's page
  * context (MAIN world) so it can see page globals and inline scripts. It only
- * gathers evidence; every rule lives in the shared engine. Both come from src/
- * and are copied to lib/ by `npm run build:extension`. Nothing is sent anywhere.
+ * gathers evidence; every rule lives in the shared engine. All three modules
+ * come from src/ and are copied to lib/ by `npm run build:extension`.
+ * Nothing is sent anywhere.
+ *
+ * The page cannot read scripts on other origins, so a site that serves its
+ * bundles from its own CDN (cdn.example.com) would go half unread. The popup
+ * offers to read those, and only those: it asks Chrome for that origin with an
+ * optional host permission, then fetches the scripts itself.
  */
 import { analyse, scoreOf, bandOf, SEV_ORDER } from "./lib/checks.js";
 import { collectPage } from "./lib/collect-page.js";
+import { crossOriginScripts, mapUrlFor, isSourceMap } from "./lib/cross-origin.js";
+
+const MAX_CDN_SCRIPTS = 16;
+const MAX_SCRIPT_BYTES = 5 * 1024 * 1024;
+
+async function hasOrigin(origin) {
+  try { return await chrome.permissions.contains({ origins: [origin + "/*"] }); } catch { return false; }
+}
+
+// Read the site's own CDN scripts we have permission for, and look for a map.
+async function readCdnScripts(groups) {
+  const bundles = [];
+  const urls = groups.flatMap((g) => g.urls).slice(0, MAX_CDN_SCRIPTS);
+  await Promise.all(urls.map(async (u) => {
+    try {
+      const r = await fetch(u, { credentials: "omit" });
+      if (!r.ok || Number(r.headers.get("content-length") || 0) > MAX_SCRIPT_BYTES) return;
+      const body = await r.text();
+      if (body.length > MAX_SCRIPT_BYTES) return;
+      bundles.push({ url: u, body, mapHeader: r.headers.get("SourceMap") || r.headers.get("X-SourceMap") || "" });
+    } catch { /* blocked or gone; skip */ }
+  }));
+  const mapFiles = [];
+  for (const b of bundles.slice(0, 4)) {
+    try {
+      const m = new URL(mapUrlFor(b.url, b.mapHeader));
+      if (m.origin !== new URL(b.url).origin) continue;
+      const r = await fetch(m.href, { credentials: "omit" });
+      if (r.ok && isSourceMap(await r.text())) { mapFiles.push(m.host + m.pathname); break; }
+    } catch {}
+  }
+  return { bundles: bundles.map(({ url, body }) => ({ url, body })), mapFiles };
+}
 
 /* ----- driver (runs in the popup) ----- */
 async function run() {
@@ -33,7 +72,21 @@ async function run() {
     return showCannot("This page blocks inspection (its security policy stops the scan). Try your own site.");
   }
   if (!result || !result.ok) return showCannot("The scan returned nothing. Reload the page and retry.");
-  render({ ...analyse(result), scanned: result.scanned, external: result.external });
+
+  // The site's own scripts on other origins: read the ones Chrome lets us,
+  // offer to read the rest.
+  const { related } = crossOriginScripts(result.url, result.scriptSrcs || []);
+  const granted = [], pending = [];
+  for (const g of related) (await hasOrigin(g.origin) ? granted : pending).push(g);
+  if (granted.length) {
+    const cdn = await readCdnScripts(granted);
+    result.bundles = result.bundles.concat(cdn.bundles);
+    if (cdn.mapFiles.length) {
+      result.liveMapFound = true;
+      result.mapFiles = (result.mapFiles || []).concat(cdn.mapFiles);
+    }
+  }
+  render({ ...analyse(result), scanned: result.bundles.length, external: result.external, pending });
 }
 
 /* ----- rendering ----- */
@@ -81,7 +134,10 @@ function render(res) {
   if (!findings.length) {
     const ok = document.createElement("div");
     ok.className = "empty-ok";
-    ok.innerHTML = "<b>Nothing obvious leaking.</b><br>No common exposure tells on this page. Keep the real defences server-side.";
+    // A clean bill of health only counts for what was read.
+    ok.innerHTML = res.pending && res.pending.length
+      ? "<b>Nothing obvious leaking</b> in what Diarea could read.<br>Read the scripts above before you trust this score."
+      : "<b>Nothing obvious leaking.</b><br>No common exposure tells on this page. Keep the real defences server-side.";
     list.appendChild(ok);
   } else {
     for (const f of findings) list.appendChild(buildFinding(f));
@@ -90,10 +146,40 @@ function render(res) {
   view().innerHTML = "";
   view().appendChild(tpl);
 
+  const report = view().querySelector(".report");
+  // Unread scripts go above the findings: the score is incomplete without them.
+  if (res.pending && res.pending.length) report.insertBefore(buildOffer(res.pending), report.querySelector(".findings"));
+
   const note = document.createElement("p");
-  note.style.cssText = "font-size:10px;color:var(--ink-faint);margin:10px 0 0;text-align:center;";
-  note.textContent = "Read " + res.scanned + " of " + res.external + " scripts (same-origin only).";
-  view().querySelector(".report").appendChild(note);
+  note.className = "read-note";
+  note.textContent = "Read " + res.scanned + " of " + res.external + " scripts. Other companies' scripts are never read.";
+  report.appendChild(note);
+}
+
+// "These scripts look like your own. Read them too?" One click, one Chrome prompt.
+function buildOffer(pending) {
+  const count = pending.reduce((n, g) => n + g.urls.length, 0);
+  const hosts = pending.map((g) => new URL(g.origin).host);
+  const box = document.createElement("div");
+  box.className = "cdn-offer";
+  const p = document.createElement("p");
+  const b = document.createElement("b");
+  b.textContent = count + (count === 1 ? " script" : " scripts") + " on " + hosts.slice(0, 2).join(", ") +
+    (hosts.length > 2 ? " and " + (hosts.length - 2) + " more" : "");
+  p.append(b, " went unread. They look like this site's own files on a CDN, and can leak too.");
+  const btn = document.createElement("button");
+  btn.className = "rescan";
+  btn.textContent = "Read them too";
+  btn.addEventListener("click", async () => {
+    let ok = false;
+    try { ok = await chrome.permissions.request({ origins: pending.map((g) => g.origin + "/*") }); } catch {}
+    if (ok) run();
+  });
+  const small = document.createElement("p");
+  small.className = "small";
+  small.textContent = "Chrome asks once for each site. Diarea only reads those scripts, and only when you scan.";
+  box.append(p, btn, small);
+  return box;
 }
 
 function buildFinding(f) {

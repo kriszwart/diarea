@@ -21,6 +21,10 @@ inputs:
     description: "Navigation timeout for live scans, in milliseconds."
     required: false
     default: "30000"
+  storage-state:
+    description: "Live scans only: path to a saved login (from `diarea login`) to scan pages behind a login. Write it from a secret in an earlier step; never commit it."
+    required: false
+    default: ""
   comment:
     description: "On pull requests, post the Leak Score as one comment and update it on every push. Needs `pull-requests: write`."
     required: false
@@ -89,12 +93,14 @@ runs:
         FAIL_ON: ${{ inputs.fail-on }}
         STRICT: ${{ inputs.strict }}
         TIMEOUT: ${{ inputs.timeout }}
+        STORAGE_STATE: ${{ inputs.storage-state }}
         DIAREA: ${{ github.action_path }}/bin/diarea.js
         REPORT: ${{ runner.temp }}/diarea-report.json
       run: |
         args=(scan "$TARGET" --json --timeout "$TIMEOUT")
         [[ -n "$FAIL_ON" ]] && args+=(--fail-on "$FAIL_ON")
         [[ "$STRICT" == "true" ]] && args+=(--strict)
+        [[ -n "$STORAGE_STATE" ]] && args+=(--storage-state "$STORAGE_STATE")
         set +e
         node "$DIAREA" "${args[@]}" > "$REPORT"
         code=$?

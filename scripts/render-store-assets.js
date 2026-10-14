@@ -51,6 +51,7 @@ const stub = () => {
   const tab = () => window.parent.document.querySelector("#tab");
   window.chrome = {
     tabs: { query: async () => [{ id: 1, url: tab().dataset.url }] },
+    permissions: { contains: async () => false, request: async () => false },
     scripting: {
       executeScript: async ({ func }) => {
         const w = tab().contentWindow;

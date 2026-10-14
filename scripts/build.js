@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ENGINE = ["src/checks.js", "src/collect-page.js"];
 const TARGETS = {
-  extension: { "extension/lib": ENGINE },
+  extension: { "extension/lib": [...ENGINE, "src/cross-origin.js"] },
   site: {
     "site/lib": ENGINE,
     "site/assets": ["docs/assets/mascot.svg", "docs/assets/social-preview.png"],

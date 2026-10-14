@@ -21,7 +21,7 @@
     <nav aria-label="Main"><a class="nav-gh" href="https://github.com/kriszwart/diarea">GitHub</a></nav>
   </header>
   <main class="policy wrap">
-    <p class="eyebrow">Privacy policy · Last updated 12 October 2026</p>
+    <p class="eyebrow">Privacy policy · Last updated 14 October 2026</p>
     <h1>Diarea collects nothing.</h1>
     <p class="lead">Not your browsing, not the pages you scan, not your findings. There is no account, no server and no analytics. The only thing that leaks here is your frontend, and only to you.</p>
 
@@ -29,7 +29,8 @@
     <ul>
       <li>It runs only when you click its icon, and only on the tab you are looking at.</li>
       <li>It reads that page (its scripts, markup and page globals) inside your browser, scores it and shows you the report. The report stays in the popup and disappears when you close it.</li>
-      <li>To read a page's own JavaScript files it may fetch them again from that same website, without your cookies, and check whether a source map file sits beside them. It never contacts any other server, and Diarea has no server of its own.</li>
+      <li>To read a page's own JavaScript files it may fetch them again from that same website, without your cookies, and check whether a source map file sits beside them. Diarea has no server of its own.</li>
+      <li>If the page loads its own scripts from a CDN (such as cdn.example.com for www.example.com), the popup offers to read those too. Only if you click does Chrome ask you for that one site, and only then does Diarea fetch those script files, without your cookies, in the same way. Scripts from other companies (analytics, payment widgets, public libraries) are never offered and never read.</li>
       <li>It stores nothing: no history, no settings, no cookies, no local storage.</li>
       <li>It does not change the page, and it does not sell, share or transfer any data, because it never has any.</li>
     </ul>
@@ -38,11 +39,12 @@
     <ul>
       <li><b>activeTab</b>: lets Diarea read the current tab, and only after you click the icon. It has no access to any other tab or site.</li>
       <li><b>scripting</b>: runs the read-only scan inside that tab so it can see what the page exposes.</li>
+      <li><b>Optional site access</b>: nothing at install. Requested one site at a time, only when you click to read a page's own CDN scripts. You can remove it at any time from the extension's details page in Chrome.</li>
     </ul>
 
     <h2>The CLI, the agent server, the GitHub Action and this website</h2>
     <ul>
-      <li>The command-line tool runs on your machine and sends nothing anywhere. The same goes for the MCP server your coding agent can start (<code>diarea mcp</code>): it runs locally, only scans what the agent asks it to, and hands back the report with secrets redacted. What your agent then does with that report is up to your agent and its own privacy terms. The GitHub Action runs in your own GitHub workflow; on pull requests it posts the score as a comment on that pull request, using your workflow's own token.</li>
+      <li>The command-line tool runs on your machine and sends nothing anywhere. The same goes for the MCP server your coding agent can start (<code>diarea mcp</code>): it runs locally, only scans what the agent asks it to (files inside the project, and public sites unless you allow private addresses), and hands back the report with secrets redacted. A login saved with <code>diarea login</code> stays in a file on your machine. What your agent then does with that report is up to your agent and its own privacy terms. The GitHub Action runs in your own GitHub workflow; on pull requests it posts the score as a comment on that pull request, using your workflow's own token.</li>
       <li>This website sets no cookies and loads nothing from other sites. The one exception is the trailer: if you press play, the video loads from YouTube's privacy-enhanced player, under <a href="https://policies.google.com/privacy">Google's privacy policy</a>.</li>
     </ul>
 
