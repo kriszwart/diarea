@@ -161,13 +161,13 @@ for (const b of document.querySelectorAll(".copy")) {
   });
 }
 
-// Trailer: swap the poster for the YouTube player only when asked, so the page
+// Videos: swap the poster for the YouTube player only when asked, so the page
 // makes no third-party requests until someone presses play.
 for (const box of document.querySelectorAll("[data-video]")) {
   box.querySelector(".video-poster").addEventListener("click", () => {
     const iframe = document.createElement("iframe");
     iframe.src = "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(box.dataset.video) + "?autoplay=1&rel=0";
-    iframe.title = "Diarea trailer";
+    iframe.title = box.dataset.title || "Diarea video";
     iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
     iframe.allowFullscreen = true;
     box.replaceChildren(iframe);

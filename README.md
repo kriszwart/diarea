@@ -17,7 +17,7 @@ An AI agent can now read your frontend and rebuild your product. Diarea reads it
 
 <a href="https://youtu.be/pWG9IXBkpvM"><img src="https://img.youtube.com/vi/pWG9IXBkpvM/maxresdefault.jpg" alt="Watch the Diarea trailer on YouTube" width="760"></a>
 
-<sub>▶ <a href="https://youtu.be/pWG9IXBkpvM">Watch the trailer</a></sub>
+<sub>▶ <a href="https://youtu.be/pWG9IXBkpvM">Watch the trailer</a> · <a href="https://youtu.be/8HVhKe6BnXs">Watch the launch video</a></sub>
 
 <img src="docs/assets/scan.svg" alt="Diarea scanning the deliberately leaky demo site and scoring it Gushing, Gushing" width="760">
 

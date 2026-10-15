@@ -141,6 +141,9 @@ h2 { font-size: clamp(28px, 4.2vw, 42px); }
 /* Trailer (YouTube loads only on click) */
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .trailer { padding-top: 8px; padding-bottom: 64px; }
+.videos { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 880px) { .videos { grid-template-columns: repeat(2, minmax(0, 1fr)); } .videos .video-title { font-size: clamp(20px, 2.2vw, 28px); } .videos .video-poster { gap: 8px; } .videos .video-poster img { width: clamp(48px, 6vw, 80px); } }
+.video-item { margin: 0; }
 .video { position: relative; aspect-ratio: 16 / 9; border-radius: calc(var(--radius) + 4px); overflow: hidden; box-shadow: var(--shadow); background: var(--code-bg); }
 .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .video-poster {
