@@ -6,7 +6,7 @@ Diarea is the defensive agent in an agent-versus-agent world. REA and tools like
 
 **Done.** A Chrome MV3 extension. Open your own deployed page, click, and get a Leak Score with findings and fixes. Everything local. This is the diagnosis.
 
-**Checks:** source maps, client-side secrets, client-side logic, hydration payloads, un-minified code, API surface, hidden fields, stack fingerprint, AI system prompts in the bundle and direct calls to AI model APIs.
+**Checks:** source maps, client-side secrets, client-side logic, hydration payloads, un-minified code, API surface, hidden fields, stack fingerprint, AI system prompts in the bundle, direct calls to AI model APIs and sensitive fields in API responses and boot data.
 
 ## v1 - CLI
 
