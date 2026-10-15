@@ -14,6 +14,7 @@ import { toSarif } from "../src/sarif.js";
 import { setup, SERVER } from "../src/setup.js";
 import { classifyIp, makeGuard } from "../src/guard.js";
 import { saveLogin } from "../src/login.js";
+import { keyPaths } from "../src/shape.js";
 import { baseDomain, crossOriginScripts, isSourceMap, mapUrlFor } from "../src/cross-origin.js";
 import os from "node:os";
 import { spawnSync } from "node:child_process";
@@ -51,6 +52,7 @@ const expected = [
   ["AI system prompt", /system prompt/i],
   ["direct AI API call", /ai model api/i],
   ["stack fingerprint", /fingerprint/i],
+  ["sensitive fields", /sensitive field/i],
 ];
 
 let failed = 0;
@@ -416,6 +418,16 @@ check(demoReport.findings.find((f) => f.id === "hidden-fields").evidence.some((e
 const logs = analyse({ consoleLogs: 7 }).findings.find((f) => f.id === "readable-code");
 check(logs && logs.sev === "info" && /7 console messages/.test(logs.evidence[0]), "debug logging on load is reported, as a count");
 check(!analyse({ consoleLogs: 2 }).findings.length, "a couple of console messages are not");
+
+console.log("Sensitive fields:");
+const shaped = keyPaths({ users: [{ email: "a@example.invalid", isAdmin: true }, { email: "b@example.invalid", isAdmin: false }], me: { email: "me@example.invalid" } });
+check(shaped.includes("users[].email") && shaped.includes("me.email") && !JSON.stringify(shaped).includes("@example"), "shapes keep key paths and drop every value");
+const fieldsOf = (keys) => analyse({ dataShapes: [{ source: "GET /api/x", keys }] }).findings.find((f) => f.id === "sensitive-fields");
+check(!fieldsOf(["email", "name", "isAdmin", "permissions", "messages[].role"]), "the viewer's own email and admin flag are fine, and so are chat roles");
+check(fieldsOf(["users[].email", "users[].isAdmin"]).sev === "warn", "other people's emails and admin flags are flagged");
+check(fieldsOf(["items[0].costPrice", "internal_notes"]).evidence[0] === "GET /api/x: items[0].costPrice, internal_notes", "costs and internal notes are flagged anywhere");
+check(fieldsOf(["user.password_hash"]).sev === "crit", "a password hash is critical");
+check(demoReport.findings.some((f) => f.id === "sensitive-fields" && /churnRisk/.test(f.evidence.join(" "))), "the demo's boot payload is read by shape");
 
 console.log(failed === 0
   ? `\nAll ${expected.length} checks fired and every guard passed. Engine is working.\n`

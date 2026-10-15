@@ -28,7 +28,7 @@
     <h2>The Chrome extension</h2>
     <ul>
       <li>It runs only when you click its icon, and only on the tab you are looking at.</li>
-      <li>It reads that page (its scripts, markup, page globals and the names of its local storage keys, never their values) inside your browser, scores it and shows you the report. The report stays in the popup and disappears when you close it.</li>
+      <li>It reads that page (its scripts, markup, page globals, the field names of its boot data and the names of its local storage keys, never their values) inside your browser, scores it and shows you the report. The report stays in the popup and disappears when you close it.</li>
       <li>To read a page's own JavaScript files it may fetch them again from that same website, without your cookies, and check whether a source map file sits beside them. Diarea has no server of its own.</li>
       <li>If the page loads its own scripts from a CDN (such as cdn.example.com for www.example.com), the popup offers to read those too. Only if you click does Chrome ask you for that one site, and only then does Diarea fetch those script files, without your cookies, in the same way. Scripts from other companies (analytics, payment widgets, public libraries) are never offered and never read.</li>
       <li>It stores nothing: no history, no settings, no cookies, no local storage.</li>

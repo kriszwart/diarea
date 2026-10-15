@@ -248,7 +248,9 @@ section { scroll-margin-top: 16px; }
 .siu-seen { --c: var(--gushing); } .siu-inferred { --c: var(--info); } .siu-unknown { --c: var(--sealed); }
 .check-grid { list-style: none; padding: 0; margin: 0; display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; grid-template-columns: 1fr; }
 @media (min-width: 560px) { .check-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 960px) { .check-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 960px) { .check-grid { grid-template-columns: repeat(4, 1fr); } }
+/* Eleven cards: the last one spans two cells, so every row fills at two and four columns. */
+@media (min-width: 560px) { .check-grid li:last-child { grid-column: span 2; } }
 .check-grid li { background: var(--card); padding: 18px 20px; display: grid; gap: 6px; align-content: start; }
 .c-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .check-grid b { font-size: 16px; }

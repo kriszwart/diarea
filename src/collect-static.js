@@ -14,6 +14,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { JSDOM } from "jsdom";
+import { keyPaths } from "./shape.js";
 
 const MAX_BUNDLES = 16;
 const MAX_BUNDLE_BYTES = 5 * 1024 * 1024;
@@ -126,6 +127,19 @@ export function collectStatic(html, baseUrl = "http://localhost/", opts = {}) {
     }
   }
 
+  // Shapes of the boot payloads: key paths of inline JSON blocks, and the key
+  // names of a hydration global's object literal (read as text, never run).
+  const dataShapes = [];
+  doc.querySelectorAll('script[type="application/json"]').forEach((s) => {
+    try { dataShapes.push({ source: s.id ? "#" + s.id : "inline JSON", keys: keyPaths(JSON.parse(s.textContent || "")) }); } catch {}
+  });
+  for (const body of inlineScripts) {
+    const marker = GLOBAL_MARKERS.find(([, re]) => re.test(body));
+    if (!marker) continue;
+    const keys = Array.from(body.matchAll(/(?:^|[{,])\s*["']?([A-Za-z_$][\w$]*)["']?\s*:(?!:)/gm), (m) => m[1]);
+    if (keys.length) dataShapes.push({ source: "window." + marker[0], keys: Array.from(new Set(keys)).slice(0, 400) });
+  }
+
   const hiddenFields = Array.from(doc.querySelectorAll('input[type="hidden"]'))
     .map((el) => el.getAttribute("name") || el.getAttribute("id"))
     .filter(Boolean);
@@ -175,5 +189,6 @@ export function collectStatic(html, baseUrl = "http://localhost/", opts = {}) {
     dataAttrs,
     frameworks,
     networkUrls: [],
+    dataShapes,
   };
 }

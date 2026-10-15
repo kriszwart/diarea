@@ -33,9 +33,9 @@ First real target: revoluAItion (revoluaition.com), a client-rendered app, so th
 - `docs/store/` is the Chrome Web Store kit: `listing.md` (copy, permission justifications, privacy answers), screenshots and promo tiles rendered by `scripts/render-store-assets.js` (the real popup with stubbed `chrome.*` APIs), plus `extension/icons/` from the mascot. `npm run package:extension` builds `dist/diarea-extension-<version>.zip`. `site/privacy.html` is the privacy policy; keep it true to what the code does.
 - `docs/assets/scan.svg` is rendered from real CLI output by `scripts/render-terminal-svg.js`; `social-preview.png` is a screenshot of `social-preview.html`.
 
-## Checks (current ten)
+## Checks (current eleven)
 
-Ten checks covering things like exposed keys, source maps, un-minified or commented bundles, API/GraphQL endpoint maps (including a bare `/graphql`), debug globals, AI system prompts in the bundle and direct calls to AI model APIs; see `src/checks.js` for the authoritative list. The report rolls findings into a 0 to 100 score with tiered labels (top tier is "Gushing"). A leaky fixture should score high; a clean page should score 0.
+Eleven checks covering things like exposed keys, source maps, un-minified or commented bundles, API/GraphQL endpoint maps (including a bare `/graphql`), debug globals, AI system prompts in the bundle, direct calls to AI model APIs and sensitive field names in API responses and boot payloads (judged from key paths made by `src/shape.js`, never values); see `src/checks.js` for the authoritative list. The report rolls findings into a 0 to 100 score with tiered labels (top tier is "Gushing"). A leaky fixture should score high; a clean page should score 0.
 
 ## Conventions
 

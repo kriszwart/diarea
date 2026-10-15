@@ -27,6 +27,7 @@ export const SEV_ORDER = { crit: 0, warn: 1, info: 2 };
 export const BASIS = {
   "source-maps": "seen", secrets: "seen", "public-anon-key": "seen", "hydration-payload": "seen",
   "hydration-state": "seen", "readable-code": "seen", "hidden-fields": "seen", "ai-system-prompt": "seen",
+  "sensitive-fields": "seen",
   "client-logic": "inferred", "api-map": "inferred", "ai-direct-call": "inferred", fingerprint: "inferred",
 };
 
@@ -68,6 +69,8 @@ function jwtRole(token) {
  *   networkUrls              - string[] endpoints observed on the wire (optional)
  *   storageKeys              - string[] "localStorage: name" key names, never values (optional)
  *   consoleLogs              - number   log/debug messages the site's own scripts printed (optional, live)
+ *   dataShapes               - {source, keys[]}[] key paths (never values) of API responses and
+ *                              hydration payloads, from src/shape.js (optional)
  * @returns {{url, host, findings}}
  */
 export function analyse(input = {}) {
@@ -76,7 +79,7 @@ export function analyse(input = {}) {
     inlineScripts: [], bundles: [], html: "",
     globals: [], biggestStateBytes: 0, biggestJsonBytes: 0,
     liveMapFound: false, mapFiles: [], hiddenFields: [], dataAttrs: [],
-    frameworks: [], networkUrls: [], storageKeys: [], consoleLogs: 0,
+    frameworks: [], networkUrls: [], storageKeys: [], consoleLogs: 0, dataShapes: [],
     ...input,
   };
 
@@ -353,6 +356,40 @@ export function analyse(input = {}) {
       "The page calls a model provider straight from the browser. That usually means a provider key is in the client, and anyone can lift it to run the model on your bill, with your prompts.",
       "Put a thin server endpoint in front of the model. The browser talks to you; only your server holds the provider key.",
       aiCalls.slice(0, 4));
+  }
+
+  // 11. Sensitive fields in data sent to the browser. Judged by field name
+  // only: collectors never hand over values. A field the page does not render
+  // still describes your model, and other people's records are a breach.
+  const fieldKinds = [
+    { sev: "crit", re: /^(?:password|passwd|passwordhash|hashedpassword|passwordsalt|salt|privatekey|secretkey|clientsecret|apisecret|otpsecret|totpsecret|mfasecret|resettoken|passwordresettoken|recoverycodes?)$/ },
+    { sev: "warn", re: /^(?:costprice|unitcost|costbasis|margin|grossmargin|profit|wholesaleprice|supplierprice|buyprice|commission|markup|churnrisk|riskscore|fraudscore|ltv|lifetimevalue)$|^(?:internal|admin|staff)(?:notes?|comments?|segment|tags?)$|^internal[a-z]/ },
+    { sev: "warn", re: /^(?:ssn|socialsecuritynumber|nationalid|taxid|passportnumber|dateofbirth|birthdate|dob)$/ },
+  ];
+  // Contact details and access flags are normal for the viewer's own record
+  // (the UI shows your email, hides admin menus), so they count only in a
+  // list of records: someone else's.
+  const perRecord = /(?:email|emailaddress|phone|phonenumber|mobile|mobilenumber|streetaddress|homeaddress)$|^(?:isadmin|isstaff|issuperuser|superuser|permissions)$/;
+  const sensitive = [];
+  for (const shape of (i.dataShapes || []).slice(0, 30)) {
+    const hits = [];
+    for (const key of shape.keys || []) {
+      const leaf = String(key).split(/[.[]/).filter((s) => s && s !== "]" && s !== "0]").pop() || "";
+      const name = leaf.toLowerCase().replace(/[_\-\]]/g, "");
+      const kind = fieldKinds.find((k) => k.re.test(name));
+      const others = !kind && perRecord.test(name) && /\[\]/.test(key);
+      if (kind || others) hits.push({ key, sev: kind ? kind.sev : "warn" });
+    }
+    if (hits.length) sensitive.push({ source: shape.source, hits });
+  }
+  if (sensitive.length) {
+    const all = sensitive.flatMap((s) => s.hits);
+    add("sensitive-fields", all.some((h) => h.sev === "crit") ? "crit" : "warn",
+      all.length + " sensitive field" + (all.length > 1 ? "s" : "") + " sent to the browser",
+      "API responses and boot payloads carry fields the page does not need: roles and permissions, costs and margins, internal notes, other people's contact details. A reader sees them in the network tab even when the screen never shows them, and they describe your data model field by field. Only field names are read, never values.",
+      "Return only the fields the page renders: shape responses on the server (a select list or a response type), drop internal, pricing and permission fields, and never send other users' personal data.",
+      sensitive.slice(0, 5).map((s) => s.source + ": " + s.hits.slice(0, 4).map((h) => h.key).join(", ") +
+        (s.hits.length > 4 ? ` (+${s.hits.length - 4} more)` : "")));
   }
 
   // 10. Framework fingerprint (informational)

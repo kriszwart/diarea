@@ -23,7 +23,7 @@ Your frontend is leaking. Diarea tells you how much.
 
 An AI agent can now read your website and rebuild your product from what it finds. Diarea reads it first. Click the icon on your own site and get a Leak Score from 0 to 100, from Sealed to Gushing, with a one-line fix for every finding.
 
-Ten checks:
+Eleven checks:
 • Source maps published in production
 • Secrets and tokens in client code (shown as a prefix and a length, never in full)
 • Scoring or business logic running in the browser
@@ -33,6 +33,7 @@ Ten checks:
 • Your AI system prompt sitting in the bundle
 • The browser calling an AI model API directly
 • Hidden fields and data attributes carrying prices, roles and flags
+• Sensitive fields in the page's data: costs, internal notes, other people's emails (field names only)
 • A stack that is easy to fingerprint
 
 Private by design:

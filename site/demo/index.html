@@ -100,7 +100,7 @@
       // Every user's projects, preloaded "for speed". This is the data moat, and it is in the page.
       projects: Array.from({ length: 160 }, (_, n) => ({
         id: 9000 + n,
-        owner: "builder" + (n + 1) + "@example.invalid",
+        ownerEmail: "builder" + (n + 1) + "@example.invalid",
         prompt: "App idea number " + (n + 1) + ", but with AI",
         creditsSpent: (n * 37) % 500,
         churnRisk: ((n * 13) % 7) / 7,

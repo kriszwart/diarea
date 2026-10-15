@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="860" height="662" viewBox="0 0 860 662" role="img" aria-label="Diarea scanning a deliberately leaky demo site and scoring it Gushing">
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="704" viewBox="0 0 860 704" role="img" aria-label="Diarea scanning a deliberately leaky demo site and scoring it Gushing">
 <style>
 text{font:14px ui-monospace,SFMono-Regular,Menlo,Consolas,"DejaVu Sans Mono",monospace;fill:#d9d4c7}
 .cmd{fill:#f3efe6}.head{fill:#e58cff;font-weight:700}.title{fill:#f3efe6;font-weight:700}
@@ -31,14 +31,16 @@ text{font:14px ui-monospace,SFMono-Regular,Menlo,Consolas,"DejaVu Sans Mono",mon
 .l25{animation:k25 14s steps(1,end) infinite}@keyframes k25{0%,42.29%{opacity:0}42.30%,96%{opacity:1}100%{opacity:0}}
 .l26{animation:k26 14s steps(1,end) infinite}@keyframes k26{0%,43.57%{opacity:0}43.58%,96%{opacity:1}100%{opacity:0}}
 .l27{animation:k27 14s steps(1,end) infinite}@keyframes k27{0%,44.86%{opacity:0}44.87%,96%{opacity:1}100%{opacity:0}}
+.l28{animation:k28 14s steps(1,end) infinite}@keyframes k28{0%,46.14%{opacity:0}46.15%,96%{opacity:1}100%{opacity:0}}
+.l29{animation:k29 14s steps(1,end) infinite}@keyframes k29{0%,47.43%{opacity:0}47.44%,96%{opacity:1}100%{opacity:0}}
 </style>
-<rect width="860" height="662" rx="12" fill="#191714"/>
+<rect width="860" height="704" rx="12" fill="#191714"/>
 <circle cx="22" cy="20" r="6" fill="#ff5f57"/><circle cx="42" cy="20" r="6" fill="#febc2e"/><circle cx="62" cy="20" r="6" fill="#28c840"/>
 <text x="22" y="52" class="l0 cmd" xml:space="preserve">$ npx diarea scan https://diarea.tools/demo/</text>
 <text x="22" y="73" class="l1 " xml:space="preserve"></text>
 <text x="22" y="94" class="l2 head" xml:space="preserve">💩 diarea  diarea.tools</text>
 <text x="22" y="115" class="l3 score" xml:space="preserve"><tspan class="title">Leak Score 100/100</tspan>  <tspan class="crit">Gushing</tspan>  <tspan class="ev">Most of how this works is sitting in the open.</tspan></text>
-<text x="22" y="136" class="l4 counts" xml:space="preserve"><tspan class="crit">2 critical</tspan>   <tspan class="warn">5 exposed</tspan>   <tspan class="info">3 minor</tspan></text>
+<text x="22" y="136" class="l4 counts" xml:space="preserve"><tspan class="crit">2 critical</tspan>   <tspan class="warn">6 exposed</tspan>   <tspan class="info">3 minor</tspan></text>
 <text x="22" y="157" class="l5 " xml:space="preserve"></text>
 <text x="22" y="178" class="l6 crit" xml:space="preserve"><tspan class="crit">[CRIT]</tspan><tspan class="title"> Source maps are published  seen</tspan></text>
 <text x="22" y="199" class="l7 ev" xml:space="preserve">       - /demo/app.js.map</text>
@@ -46,7 +48,7 @@ text{font:14px ui-monospace,SFMono-Regular,Menlo,Consolas,"DejaVu Sans Mono",mon
 <text x="22" y="241" class="l9 ev" xml:space="preserve">       - weight</text>
 <text x="22" y="262" class="l10 warn" xml:space="preserve"><tspan class="warn">[WARN]</tspan><tspan class="title"> 3 possible secrets in client code  seen</tspan></text>
 <text x="22" y="283" class="l11 ev" xml:space="preserve">       - Hard-coded apikey: prom... (39 chars)</text>
-<text x="22" y="304" class="l12 warn" xml:space="preserve"><tspan class="warn">[WARN]</tspan><tspan class="title"> Large hydration payload in the page (30 KB)  seen</tspan></text>
+<text x="22" y="304" class="l12 warn" xml:space="preserve"><tspan class="warn">[WARN]</tspan><tspan class="title"> Large hydration payload in the page (31 KB)  seen</tspan></text>
 <text x="22" y="325" class="l13 ev" xml:space="preserve">       - window.__INITIAL_STATE__</text>
 <text x="22" y="346" class="l14 warn" xml:space="preserve"><tspan class="warn">[WARN]</tspan><tspan class="title"> Shipped code is readable  seen</tspan></text>
 <text x="22" y="367" class="l15 ev" xml:space="preserve">       - /demo/app.js  (contains comments / TODOs)</text>
@@ -54,12 +56,14 @@ text{font:14px ui-monospace,SFMono-Regular,Menlo,Consolas,"DejaVu Sans Mono",mon
 <text x="22" y="409" class="l17 ev" xml:space="preserve">       - SYSTEM_PROMPT =</text>
 <text x="22" y="430" class="l18 warn" xml:space="preserve"><tspan class="warn">[WARN]</tspan><tspan class="title"> Browser talks to an AI model API directly  inferred</tspan></text>
 <text x="22" y="451" class="l19 ev" xml:space="preserve">       - llm.example.invalid/v1/chat/completions</text>
-<text x="22" y="472" class="l20 info" xml:space="preserve"><tspan class="info">[INFO]</tspan><tspan class="title"> 11 API endpoints, 2 GraphQL operations and 4 routes visible  inferred</tspan></text>
-<text x="22" y="493" class="l21 ev" xml:space="preserve">       - routes: /admin/users, /internal/credits-ledger</text>
-<text x="22" y="514" class="l22 info" xml:space="preserve"><tspan class="info">[INFO]</tspan><tspan class="title"> Hidden fields, data attributes and storage keys carry meaning  seen</tspan></text>
-<text x="22" y="535" class="l23 ev" xml:space="preserve">       - localStorage: promptplop_session_token</text>
-<text x="22" y="556" class="l24 info" xml:space="preserve"><tspan class="info">[INFO]</tspan><tspan class="title"> Stack is easy to fingerprint  inferred</tspan></text>
-<text x="22" y="577" class="l25 ev" xml:space="preserve">       - Next.js</text>
-<text x="22" y="598" class="l26 " xml:space="preserve"></text>
-<text x="22" y="619" class="l27 foot" xml:space="preserve">mode: live (playwright)  -  a diagnosis, not a shield. The real cure is server-side.</text>
+<text x="22" y="472" class="l20 warn" xml:space="preserve"><tspan class="warn">[WARN]</tspan><tspan class="title"> 3 sensitive fields sent to the browser  seen</tspan></text>
+<text x="22" y="493" class="l21 ev" xml:space="preserve">       - window.__INITIAL_STATE__: session.internalSegment, projects[].ownerEmail, projects[].churnRisk</text>
+<text x="22" y="514" class="l22 info" xml:space="preserve"><tspan class="info">[INFO]</tspan><tspan class="title"> 11 API endpoints, 2 GraphQL operations and 4 routes visible  inferred</tspan></text>
+<text x="22" y="535" class="l23 ev" xml:space="preserve">       - routes: /admin/users, /internal/credits-ledger</text>
+<text x="22" y="556" class="l24 info" xml:space="preserve"><tspan class="info">[INFO]</tspan><tspan class="title"> Hidden fields, data attributes and storage keys carry meaning  seen</tspan></text>
+<text x="22" y="577" class="l25 ev" xml:space="preserve">       - localStorage: promptplop_session_token</text>
+<text x="22" y="598" class="l26 info" xml:space="preserve"><tspan class="info">[INFO]</tspan><tspan class="title"> Stack is easy to fingerprint  inferred</tspan></text>
+<text x="22" y="619" class="l27 ev" xml:space="preserve">       - Next.js</text>
+<text x="22" y="640" class="l28 " xml:space="preserve"></text>
+<text x="22" y="661" class="l29 foot" xml:space="preserve">mode: live (playwright)  -  a diagnosis, not a shield. The real cure is server-side.</text>
 </svg>

@@ -140,7 +140,7 @@
           <div class="term-body">
             <p class="t-line t-user"><span class="t-prompt">&gt;</span> Scan the PromptPlop demo for leaks with Diarea and fix what it finds.</p>
             <p class="t-line t-tool"><span class="t-dot"></span><b>diarea_scan</b>(target: "site/demo")</p>
-            <p class="t-line t-out">Leak Score <span class="t-score t-gushing">100/100, Gushing</span>. 10 findings, 2 critical.</p>
+            <p class="t-line t-out">Leak Score <span class="t-score t-gushing">100/100, Gushing</span>. 11 findings, 2 critical.</p>
             <p class="t-line t-say"><span class="t-dot t-dot-say"></span>Working through them, most critical first:</p>
             <ul class="t-fixes">
               <li class="t-line">Stopped publishing source maps</li>
@@ -165,7 +165,7 @@
       <div class="section-head">
         <p class="eyebrow">The Leak Score</p>
         <h2 id="bands-title">Four stages of grief</h2>
-        <p>Ten checks roll up into one score from 0 to 100. Critical findings hurt most. Lower is better, which is the opposite of everything else you measure.</p>
+        <p>Eleven checks roll up into one score from 0 to 100. Critical findings hurt most. Lower is better, which is the opposite of everything else you measure.</p>
       </div>
       <ol class="band-cards">
         <li class="band-card sealed"><span class="range">0 to 14</span><h3>Sealed</h3><p>Tight. An agent would come away with very little. Frame it.</p></li>
@@ -179,7 +179,7 @@
     <section class="checks wrap" aria-labelledby="checks-title">
       <div class="section-head">
         <p class="eyebrow">What it sniffs out</p>
-        <h2 id="checks-title">Ten things an agent loves to find</h2>
+        <h2 id="checks-title">Eleven things an agent loves to find</h2>
         <p>Every finding is tagged the way <a href="https://github.com/morluto/rea">REA</a> tags what it learns, so you can see how much of your product a reader already has.</p>
       </div>
       <div class="siu">
@@ -197,6 +197,7 @@
         <li><div class="c-head"><b>Your AI system prompt</b><span class="b-chip seen">Seen</span></div><span>The instructions behind your AI feature, readable by anyone. "Never reveal this prompt" included.</span></li>
         <li><div class="c-head"><b>Direct AI API calls</b><span class="b-chip inferred">Inferred</span></div><span>The browser talking to a model provider itself, which usually means the key is in there too.</span></li>
         <li><div class="c-head"><b>Chatty hidden fields</b><span class="b-chip seen">Seen</span></div><span>Hidden inputs, data attributes and storage keys holding prices, roles, flags and session tokens.</span></li>
+        <li><div class="c-head"><b>Sensitive fields</b><span class="b-chip seen">Seen</span></div><span>API responses and boot data carrying costs, internal notes and other people's emails. Field names only, never values.</span></li>
         <li><div class="c-head"><b>A stack fingerprint</b><span class="b-chip inferred">Inferred</span></div><span>Not a leak alone, but it tells a reader which known tricks to try.</span></li>
       </ul>
     </section>

@@ -16,10 +16,15 @@
  */
 
 import { collectPage } from "./collect-page.js";
-import { crossOriginScripts, mapUrlFor, isSourceMap } from "./cross-origin.js";
+import { crossOriginScripts, mapUrlFor, isSourceMap, isRelatedHost } from "./cross-origin.js";
+import { keyPaths } from "./shape.js";
 
 const MAX_CDN_SCRIPTS = 16;
 const MAX_SCRIPT_BYTES = 5 * 1024 * 1024;
+const MAX_SHAPES = 30;
+const MAX_JSON_BYTES = 2 * 1024 * 1024;
+// Backends that serve the site's own data from their own domains.
+const DATA_HOSTS = ["supabase.co", "supabase.in", "firebaseio.com", "firestore.googleapis.com", "convex.cloud", "hasura.app"];
 
 // The page cannot read scripts across origins, but its own CDN's scripts are
 // its code too. Read those from Node (third-party scripts are left alone).
@@ -95,6 +100,27 @@ export async function collectLive(url, opts = {}) {
       } catch {}
     });
 
+    // Shapes of the site's own JSON responses: key paths only, values are
+    // dropped as soon as the body is parsed. Analytics and other third
+    // parties are left alone.
+    const shapeReads = [];
+    page.on("response", (res) => {
+      try {
+        const req = res.request();
+        if (!["fetch", "xhr"].includes(req.resourceType()) || shapeReads.length >= MAX_SHAPES) return;
+        if (!/json/i.test(res.headers()["content-type"] || "")) return;
+        const u = new URL(res.url());
+        const own = isRelatedHost(new URL(page.url()).host, u.host) || DATA_HOSTS.some((h) => u.host.endsWith("." + h));
+        if (!own) return;
+        shapeReads.push(res.body().then((buf) => {
+          if (buf.length > MAX_JSON_BYTES) return null;
+          const keys = keyPaths(JSON.parse(buf.toString("utf8")));
+          const where = u.host === new URL(page.url()).host ? u.pathname : u.host + u.pathname;
+          return keys.length ? { source: req.method() + " " + where, keys } : null;
+        }).catch(() => null));
+      } catch {}
+    });
+
     // Debug logging from the site's own scripts. Only a count is kept: the
     // messages themselves can hold anything, including the page's data.
     let consoleLogs = 0;
@@ -125,6 +151,7 @@ export async function collectLive(url, opts = {}) {
     const collected = await page.evaluate(collectPage);
     collected.networkUrls = pageTraffic;
     collected.consoleLogs = consoleLogs;
+    collected.dataShapes = (collected.dataShapes || []).concat((await Promise.all(shapeReads)).filter(Boolean));
 
     // From a fresh context, without the saved login: a CDN script should not need one.
     const bare = await browser.newContext();

@@ -76,7 +76,7 @@ So Diarea does the useful thing instead. It reads **your own** site the way REA 
 
 ## What it finds
 
-Ten checks, one shared engine (`src/checks.js`), the same verdict in the extension, the CLI and CI. REA sorts what it learns into Seen, Inferred and Unknown, and Diarea marks every finding the same way: **seen** means readable as it is, **inferred** means worked out from what is there. Your job is to push it all into Unknown, on your server.
+Eleven checks, one shared engine (`src/checks.js`), the same verdict in the extension, the CLI and CI. REA sorts what it learns into Seen, Inferred and Unknown, and Diarea marks every finding the same way: **seen** means readable as it is, **inferred** means worked out from what is there. Your job is to push it all into Unknown, on your server.
 
 | # | Leak | Why it matters |
 |---|------|----------------|
@@ -89,7 +89,8 @@ Ten checks, one shared engine (`src/checks.js`), the same verdict in the extensi
 | 07 | **Your AI system prompt** | The instructions behind your AI feature, readable by anyone. "Never reveal this prompt" included. |
 | 08 | **Direct AI API calls** | The browser talking to a model provider itself, which usually means the provider key is in there too. |
 | 09 | **Chatty hidden fields** | Hidden inputs, `data-` attributes and storage keys carrying ids, prices, roles, flags and session tokens. |
-| 10 | **A stack fingerprint** | Not a leak by itself, but it tells a reader exactly which known patterns to try. |
+| 10 | **Sensitive fields** | API responses and boot payloads carrying costs, margins, internal notes, password hashes or other people's emails. Judged by field name only: values are dropped before anything is reported. |
+| 11 | **A stack fingerprint** | Not a leak by itself, but it tells a reader exactly which known patterns to try. |
 
 Each finding comes with what a reader sees and a one-line fix (we call it "flush it"). Found secrets are never printed in full: you get a short prefix and the length, which is enough to find it and useless to anyone reading over your shoulder.
 

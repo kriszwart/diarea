@@ -62,6 +62,29 @@ export async function collectPage() {
     .map((s) => (s.textContent || "").length);
   const biggestJsonBytes = jsonBlocks.length ? Math.max(...jsonBlocks) : 0;
 
+  // Shapes of the boot payloads: key paths only, values are never kept. A copy
+  // of src/shape.js, since this function cannot import. "[]" is a list of records.
+  const keyPaths = (value) => {
+    const out = new Set();
+    const walk = (v, at, depth) => {
+      if (out.size >= 400 || depth > 8 || v === null || typeof v !== "object") return;
+      if (Array.isArray(v)) {
+        for (const r of v.filter((x) => x && typeof x === "object").slice(0, 3)) walk(r, at + (v.length > 1 ? "[]" : "[0]"), depth + 1);
+        return;
+      }
+      for (const k of Object.keys(v).slice(0, 200)) { const p = at ? at + "." + k : k; out.add(p); walk(v[k], p, depth + 1); }
+    };
+    walk(value, "", 0);
+    return Array.from(out);
+  };
+  const dataShapes = [];
+  for (const g of globals) {
+    try { dataShapes.push({ source: "window." + g, keys: keyPaths(window[g]) }); } catch {}
+  }
+  document.querySelectorAll('script[type="application/json"]').forEach((s) => {
+    try { dataShapes.push({ source: s.id ? "#" + s.id : "inline JSON", keys: keyPaths(JSON.parse(s.textContent || "")) }); } catch {}
+  });
+
   const hiddenFields = Array.from(document.querySelectorAll('input[type="hidden"]'))
     .map((el) => el.name || el.id).filter(Boolean);
   const dataAttrs = [];
@@ -97,7 +120,7 @@ export async function collectPage() {
     url: location.href, host: location.host, origin,
     inlineScripts, bundles, html: document.documentElement.outerHTML,
     globals, biggestStateBytes, biggestJsonBytes, liveMapFound, mapFiles,
-    hiddenFields, dataAttrs, frameworks: fp, networkUrls: [], storageKeys,
+    hiddenFields, dataAttrs, frameworks: fp, networkUrls: [], storageKeys, dataShapes,
     scanned: bundles.length,
     external: externalSrcs.length,
     // Every script URL, so the caller can read the site's own CDN scripts,
