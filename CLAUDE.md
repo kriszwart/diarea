@@ -23,6 +23,7 @@ First real target: revoluAItion (revoluaition.com), a client-rendered app, so th
 - `src/scan.js` runs one scan from target to scored report; the CLI and the MCP server both use it. File scans use project-relative paths so reports never show local folder names.
 - `src/mcp.js` is the MCP server (JSON-RPC over stdio, stdout is protocol only) and `src/setup.js` the `diarea setup` command. Keep the tool read-only and the server instructions defensive. File targets must stay inside the project (symlinks resolved), stdin is never read, and every URL goes through `src/guard.js`: private and loopback addresses only with `--allow-private` (set by the user in the server config, never by a tool argument), link-local and cloud metadata never.
 - `src/guard.js` classifies hosts by name and by every address they resolve to; `collect-live.js` also routes each page request and checks the redirect chain through it.
+- `src/browser.js` starts Chromium for live scans and `diarea login`, turning Playwright's missing-browser error into one that says `npx diarea install-browser`, and installs with Diarea's own bundled Playwright so versions always match. The CLI offers the install interactively (TTY only); CI, pipes and the MCP server just get the instruction.
 - `src/login.js` is `diarea login`: the user logs in themselves in a headed browser and the storage state is saved 0600, with `.diarea/.gitignore`. Diarea never types or stores passwords.
 - `src/cross-origin.js` decides which cross-origin scripts are the site's own (same registrable domain, or a hosting CDN such as CloudFront). The live collector reads those from Node; the extension offers to read them with an optional host permission requested per site. Third-party scripts are never read.
 - `bin/diarea.js` is the CLI entry point. `src/sarif.js` formats a report as SARIF 2.1.0 (`--sarif`, and the Action's `sarif` input via `scripts/action-sarif.js`); it holds no rules. Every finding has a stable `id`, which is its SARIF rule id: never rename one. Each finding also carries a `basis` (`seen` or `inferred`, from `BASIS` in `checks.js`), REA's labels; Unknown is what stays on the server.
@@ -31,7 +32,7 @@ First real target: revoluAItion (revoluaition.com), a client-rendered app, so th
 - `test/fixtures/` holds deliberately leaky and clean pages. `npm test` must run without a browser. Fake secrets are assembled in the test, never stored as credential-shaped strings (GitHub push protection blocks them).
 - `site/` is published to GitHub Pages at https://diarea.tools (custom domain set in the repo's Pages settings; no CNAME file, since Actions deploys ignore it): the landing page (`index.html`, `landing.css`, `landing.js`) at the root, which runs the real engine on the demo in an iframe and loads nothing from third parties (not even fonts) until someone presses play on one of the two YouTube videos (the trailer and the launch video), which only then swaps in a youtube-nocookie player. `site/demo/` is PromptPlop, a fake AI app builder that leaks on purpose (every check must fire on it; the tests enforce this). It must stay generic: never model it on, or name it after, a real company. It is the only thing the docs and landing page ever scan.
 - `docs/store/` is the Chrome Web Store kit: `listing.md` (copy, permission justifications, privacy answers), screenshots and promo tiles rendered by `scripts/render-store-assets.js` (the real popup with stubbed `chrome.*` APIs), plus `extension/icons/` from the mascot. `npm run package:extension` builds `dist/diarea-extension-<version>.zip`. `site/privacy.html` is the privacy policy; keep it true to what the code does.
-- `docs/assets/scan.svg` is rendered from real CLI output by `scripts/render-terminal-svg.js`; `social-preview.png` is a screenshot of `social-preview.html`.
+- `docs/assets/scan.svg` is rendered from real CLI output by `scripts/render-terminal-svg.js`; `social-preview.png` (1280x640, for GitHub's social preview setting) and `og-image.png` (1200x630, the link-preview image the landing page's Open Graph and X tags point at) are screenshots of `social-preview.html` and `og-image.html`.
 
 ## Checks (current eleven)
 
@@ -49,7 +50,7 @@ Eleven checks covering things like exposed keys, source maps, un-minified or com
 
 ```
 npm install
-npx playwright install chromium   # only needed for live scans
+node bin/diarea.js install-browser # only needed for live scans (Diarea's own Playwright, so versions match)
 npm test
 npm run corpus                     # false-positive check against real libraries (network)
 node bin/diarea.js scan https://example.com

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<!-- Source for og-image.png (1200x630, the 1.91:1 link-preview shape LinkedIn, X and Facebook use). social-preview.html is the 1280x640 one for GitHub. -->
+<html lang="en-GB"><head><meta charset="UTF-8"><title>Diarea link preview</title>
+<style>
+  html, body { margin: 0; width: 1200px; height: 630px; }
+  body { background: radial-gradient(circle at 20% 30%, #2a2420, #151310 70%); color: #f3efe6;
+    font-family: "DejaVu Sans", system-ui, sans-serif; display: flex; align-items: center; gap: 48px; padding: 0 76px; box-sizing: border-box; overflow: hidden; }
+  img { width: 330px; height: 330px; flex: none; filter: drop-shadow(0 18px 30px rgba(0,0,0,.45)); }
+  h1 { font-size: 104px; margin: 0; letter-spacing: -4px; line-height: 1; }
+  .tag { font-size: 36px; line-height: 1.25; margin: 22px 0 30px; color: #d9d4c7; }
+  .tag b { color: #ff7a4d; }
+  .score { display: inline-flex; align-items: baseline; gap: 14px; background: #24211d; border: 2px solid #39352e; border-radius: 16px; padding: 12px 22px; font-family: "DejaVu Sans Mono", monospace; font-size: 30px; }
+  .score .n { font-weight: 700; } .score .g { color: #ff6b6b; font-weight: 700; }
+  .meta { margin-top: 30px; font-size: 24px; color: #8a857a; }
+</style></head>
+<body>
+  <img src="mascot.svg" alt="">
+  <div>
+    <h1>Diarea</h1>
+    <p class="tag">Finds what your frontend <b>leaks</b>.<br>Before anyone else does.</p>
+    <div class="score"><span class="n">Leak Score 100/100</span><span class="g">Gushing</span></div>
+    <div class="meta">Coding agents · CLI · GitHub Action · Chrome · MIT</div>
+  </div>
+</body></html>

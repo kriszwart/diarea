@@ -6,9 +6,9 @@ Everything the Chrome Web Store dashboard asks for, ready to paste. Images are i
 
 | Field | Value |
 |---|---|
-| Upload | `dist/diarea-extension-0.5.0.zip` |
+| Upload | `dist/diarea-extension-0.6.0.zip` |
 | Name | Diarea |
-| Version | 0.5.0 (from `extension/manifest.json`) |
+| Version | 0.6.0 (from `extension/manifest.json`) |
 
 ## Store listing
 

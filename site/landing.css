@@ -97,6 +97,7 @@ h2 { font-size: clamp(28px, 4.2vw, 42px); }
 .btn-primary { background: var(--accent); color: var(--accent-ink); box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 30%, transparent); }
 .btn-primary:hover { box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 40%, transparent); }
 .btn-primary[disabled] { opacity: 0.6; cursor: progress; }
+.btn-primary.is-preparing { opacity: 0.75; cursor: progress; }
 .btn-ghost { color: var(--ink); border-color: var(--line); background: var(--card); }
 .btn-ghost:hover { border-color: var(--ink-faint); }
 :focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 2px; }
@@ -128,6 +129,8 @@ h2 { font-size: clamp(28px, 4.2vw, 42px); }
 .quick .prompt { color: #8f887b; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 .quick code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font-size: 15px; }
 .quick .copy { position: static; flex: none; }
+.quick-note { margin: 10px 0 0; max-width: 560px; font-size: 14px; color: var(--ink-faint); }
+.quick-note code { background: var(--paper-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 5px; color: var(--ink-soft); white-space: nowrap; }
 .hero-art { position: relative; display: grid; place-items: center; }
 .mascot { width: min(300px, 70vw); height: auto; filter: drop-shadow(0 20px 30px rgba(60, 35, 15, 0.25)); animation: wobble 4s ease-in-out infinite; transform-origin: 50% 90%; }
 @keyframes wobble { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg) translateY(-4px); } }

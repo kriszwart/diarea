@@ -9,6 +9,7 @@
  * does hold a live session, so it is written readable by you only, and the
  * default folder (.diarea/) gets its own .gitignore so it is never committed.
  */
+import { launchChromium } from "./browser.js";
 import fs from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline";
@@ -47,15 +48,14 @@ export async function login(argv, { log = console.log, cwd = process.cwd(), inpu
     return 2;
   }
 
-  let chromium;
+  let browser;
   try {
-    ({ chromium } = await import("playwright"));
-  } catch {
-    log("Saving a login needs Playwright and a browser:\n  npm install playwright\n  npx playwright install chromium");
+    browser = await launchChromium({ headless: false });
+  } catch (err) {
+    if (err.code !== "NO_BROWSER") throw err;
+    log("Saving a login needs a browser.\n" + err.message.split("\n").slice(1).join("\n"));
     return 2;
   }
-
-  const browser = await chromium.launch({ headless: false });
   try {
     const context = await browser.newContext();
     const page = await context.newPage();

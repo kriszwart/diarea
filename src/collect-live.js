@@ -4,7 +4,8 @@
  * to run on your own machine against a deployed site.
  *
  * Playwright is an optional dependency so that the static/CI path works without
- * a browser. If it is missing, this throws a clear, actionable error.
+ * a browser. If it or its Chromium is missing, launchChromium throws a
+ * BrowserMissingError that says how to install it (src/browser.js).
  *
  * Options:
  *   timeout       navigation timeout in ms
@@ -16,6 +17,7 @@
  */
 
 import { collectPage } from "./collect-page.js";
+import { launchChromium } from "./browser.js";
 import { crossOriginScripts, mapUrlFor, isSourceMap, isRelatedHost } from "./cross-origin.js";
 import { keyPaths } from "./shape.js";
 
@@ -60,21 +62,9 @@ export async function collectLive(url, opts = {}) {
   const guard = opts.guard || null;
   if (guard) await guard(url);
 
-  let chromium;
-  try {
-    ({ chromium } = await import("playwright"));
-  } catch {
-    throw new Error(
-      "Live scanning needs Playwright and a browser.\n" +
-      "  npm install playwright\n" +
-      "  npx playwright install chromium\n" +
-      "Or scan a saved page without a browser:  diarea scan --html page.html"
-    );
-  }
-
   // Always close the browser, even when navigation or collection throws:
   // the MCP server is long-lived, so a leaked Chromium would outlast the scan.
-  const browser = await chromium.launch();
+  const browser = await launchChromium();
   try {
     const context = await browser.newContext({
       ...(opts.storageState ? { storageState: opts.storageState } : {}),

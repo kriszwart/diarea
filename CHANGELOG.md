@@ -2,9 +2,14 @@
 
 All notable changes to Diarea. Versions follow [semantic versioning](https://semver.org/); while it is 0.x, a minor bump can add checks that change scores.
 
-## 0.5.0
+## 0.6.0
 
 - **A new check: sensitive fields.** Live scans read the shape of the site's own JSON responses (field names, never values), and every scan reads the shape of the page's boot payload. Password hashes and secrets in that data are critical; costs, margins, internal notes and risk scores are flagged wherever they appear; emails, phone numbers and admin flags only when they sit in a list of records, which means other people's. Third-party responses are left alone. Eleven checks now.
+- **The first live scan no longer dead-ends.** On a fresh machine a live scan used to stop at Playwright's "Executable doesn't exist" message. Diarea now explains what is missing, offers to download Chromium there and then (only when a person is at the keyboard), and has `diarea install-browser` for doing it up front. It installs with Diarea's own Playwright, so the browser always matches; a bare `npx playwright install` could fetch a different version. `diarea login` uses the same launcher.
+- **The demo button works from the first click.** On a slow first visit, "Run the diagnosis" (and "Scan the leaky demo") could be clicked before the demo script had loaded, and nothing happened. The button now says "Preparing the demo..." until it is ready, and early clicks are remembered and run as soon as it is.
+
+## 0.5.0
+
 - **Seen, Inferred and Unknown.** Every finding now says whether a reader gets it as is (`seen`: secrets, source maps, prompts, payloads) or works it out from what is there (`inferred`: the API map, the logic, the stack). The report opens with the tally, and the goal is the third bucket: Unknown, which is anything kept on your server. The new `basis` field is in `--json`, SARIF (`properties.basis`), the MCP report, the Action summary, the extension and the website.
 - **The API map reads names, not just URLs.** Named GraphQL operations (`mutation GrantCredits`), tRPC procedures (from React hooks and from batched calls on the wire) and client routes (router tables and Next.js build manifests) now count, and admin, internal and staff routes are called out first. A GraphQL or tRPC app used to look small because it has one URL. SDK request descriptors such as `{ path: "/client", method: "GET" }` are not routes.
 - **Storage keys.** Telling key names in `localStorage` and `sessionStorage` (tokens, roles, plans) are reported with the hidden fields, from the page and from the code that sets them. Only names are ever read, never values. A session token in `localStorage` gets its own fix: use an HttpOnly cookie.

@@ -33,7 +33,7 @@ npx diarea scan dist/index.html           # your build output, no browser needed
 npx diarea setup                          # let your coding agent run it (Claude Code, Cursor, any MCP client)
 ```
 
-Live scans need a browser once: `npx playwright install chromium`. Prefer clicking? There is a [Chrome extension](#install-the-extension). Want it in CI? There is a [GitHub Action](#github-action).
+Live scans need a browser once. Diarea offers to download it the first time, or run `npx diarea install-browser` (it fetches the exact Chromium this version of Diarea uses). Prefer clicking? There is a [Chrome extension](#install-the-extension). Want it in CI? There is a [GitHub Action](#github-action).
 
 ## Let your coding agent fix it
 
@@ -142,12 +142,13 @@ npx diarea scan https://your-site.com/dashboard --storage-state .diarea/login.js
 Two modes:
 
 - **Static (jsdom).** Point it at a `.html` file, stdin (`-`), or use `--html`. No browser, fast, safe on untrusted markup (scripts are never run). Reads inline scripts, hydration blobs and the DOM, plus the page's local `<script src>` and `modulepreload` files and any `.map` beside them. Give it the build folder (`dist`) and it reads every script and script map in it too, because lazy chunks and "hidden" source maps get deployed even though `index.html` never names them. It never reads outside that folder, never follows symlinks and never fetches anything. It will not see data that only appears after client-side rendering.
-- **Live (Playwright).** Point it at a URL. Loads the real page in headless Chromium, so it sees page globals, fetched bundles, the site's own CDN scripts and the live network map. Third-party scripts are never read. One-time setup:
+- **Live (Playwright).** Point it at a URL. Loads the real page in headless Chromium, so it sees page globals, fetched bundles, the site's own CDN scripts and the live network map. Third-party scripts are never read. The first live scan offers to download Chromium; to do it up front:
 
 ```
-npm install playwright
-npx playwright install chromium
+npx diarea install-browser
 ```
+
+It uses Diarea's own Playwright, so the browser always matches. (A bare `npx playwright install` can fetch a different Playwright and leave you with "Executable doesn't exist".)
 
 Most leakage lives behind the login, so live scans can sign in. `diarea login <url>` opens a real browser window; you log in yourself (Diarea never sees your password) and press Enter, and it saves that session to `.diarea/login.json`, readable only by you and kept out of git by its own `.gitignore`. Pass it with `--storage-state`. It is a live session: treat it like a password and delete it when you are done.
 
@@ -181,7 +182,7 @@ Commenting never fails the build: on forked pull requests (read-only token) it l
 
 We dogfood it: every pull request to this repo gets the Leak Score of our own landing page. It scores 11/100, Sealed. The one finding is that `landing.js` is readable, which for an open source site is rather the point.
 
-`@v0` follows the latest 0.x release. Pin to `@v0.5.0` (or a commit SHA) for a fixed version.
+`@v0` follows the latest 0.x release. Pin to `@v0.6.0` (or a commit SHA) for a fixed version.
 
 | Input | Default | |
 |---|---|---|

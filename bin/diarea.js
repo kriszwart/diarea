@@ -12,11 +12,12 @@ const HELP = `
 diarea ${VERSION}  -  frontend leak scanner (local, read-only)
 
 Usage:
-  diarea scan <url>              Scan a live site (needs Playwright + a browser)
+  diarea scan <url>              Scan a live site in a headless browser (offers to install it the first time)
   diarea scan <file.html>        Scan a saved page, no browser
   diarea scan <folder>           Scan a build folder: index.html plus every script (dist/)
   diarea scan --html <file>      Same, explicit
   cat page.html | diarea scan -  Scan HTML from stdin
+  diarea install-browser         Download the browser live scans use (once, matched to this version)
   diarea login <url>             Log in once in a real browser and save it, to scan pages behind a login
   diarea setup                   Let your coding agent run Diarea (Claude Code, MCP)
   diarea setup --project         ...for everyone on this project (.mcp.json)
@@ -131,6 +132,20 @@ function renderHuman(result, mode, s) {
   return out.join("\n");
 }
 
+// Only ask when a person is at the keyboard; in CI, pipes and agents the
+// error itself says what to run.
+async function offerBrowserInstall(s) {
+  if (!process.stdin.isTTY || !process.stderr.isTTY) return false;
+  const { createInterface } = await import("node:readline/promises");
+  const rl = createInterface({ input: process.stdin, output: process.stderr });
+  const answer = await rl.question(`\n  ${s.mag("\u{1F4A9} diarea")} Live scans need a browser, and Chromium is not installed yet.\n` +
+    "  Download it now? It is a one-off download, kept for next time. [Y/n] ");
+  rl.close();
+  if (/^\s*n/i.test(answer)) return false;
+  const { installBrowser } = await import("../src/browser.js");
+  return installBrowser() === 0;
+}
+
 async function main() {
   const o = parseArgs(process.argv.slice(2));
   if (o.version) { console.log(VERSION); return 0; }
@@ -149,6 +164,10 @@ async function main() {
     const { login } = await import("../src/login.js");
     return login(process.argv.slice(3));
   }
+  if (cmd === "install-browser") {
+    const { installBrowser } = await import("../src/browser.js");
+    return installBrowser();
+  }
   if (cmd === "setup") {
     const { setup } = await import("../src/setup.js");
     return setup(process.argv.slice(3));
@@ -164,7 +183,14 @@ async function main() {
   let result;
   try {
     if (o.storageState && (o.html || !isUrl(target))) throw new Error("--storage-state only applies to live scans of a URL.");
-    result = await scan(target, { timeout: o.timeout, forceStatic: Boolean(o.html), storageState: o.storageState });
+    const run = () => scan(target, { timeout: o.timeout, forceStatic: Boolean(o.html), storageState: o.storageState });
+    try {
+      result = await run();
+    } catch (err) {
+      // First live scan on this machine: offer to fetch the browser, then go again.
+      if (err.code !== "NO_BROWSER" || err.missingPackage || !(await offerBrowserInstall(s))) throw err;
+      result = await run();
+    }
   } catch (err) {
     console.error(`\n  ${s.crit("Could not scan.")} ${err.message}\n`);
     return 2;

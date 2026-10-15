@@ -16,7 +16,7 @@ const TARGETS = {
   extension: { "extension/lib": [...ENGINE, "src/cross-origin.js"] },
   site: {
     "site/lib": ENGINE,
-    "site/assets": ["docs/assets/mascot.svg", "docs/assets/social-preview.png"],
+    "site/assets": ["docs/assets/mascot.svg", "docs/assets/social-preview.png", "docs/assets/og-image.png"],
   },
 };
 

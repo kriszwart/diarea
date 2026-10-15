@@ -140,12 +140,39 @@ async function scan() {
   }
 }
 
-btn.addEventListener("click", scan);
+// The button stays in "Preparing" until this script and the demo page have
+// both loaded. Clicks before that are queued (see the inline script in
+// index.html), so a fast visitor never gets a dead button.
+let ready = false;
+let queued = false;
+function demoLoaded() {
+  return new Promise((resolve) => {
+    try {
+      const doc = frame.contentDocument;
+      if (doc && doc.readyState === "complete" && doc.location.href !== "about:blank") return resolve();
+    } catch { /* not readable yet */ }
+    frame.addEventListener("load", () => resolve(), { once: true });
+    setTimeout(resolve, 15000); // a slow demo still gets a working button
+  });
+}
+
+btn.addEventListener("click", () => { if (ready) scan(); else queued = true; });
 
 // "Scan the leaky demo" links scroll to the demo and start it.
 for (const a of document.querySelectorAll("[data-autoscan]")) {
-  a.addEventListener("click", () => setTimeout(scan, reduced ? 0 : 450));
+  a.addEventListener("click", () => {
+    if (ready) setTimeout(scan, reduced ? 0 : 450); else queued = true;
+  });
 }
+
+demoLoaded().then(() => {
+  ready = true;
+  window.__diareaReady = true;
+  btn.classList.remove("is-preparing");
+  btn.removeAttribute("aria-disabled");
+  if (queued || window.__diareaQueued) { queued = false; scan(); }
+  else btn.textContent = "Run the diagnosis";
+});
 
 // Copy buttons on the install snippets.
 for (const b of document.querySelectorAll(".copy")) {
