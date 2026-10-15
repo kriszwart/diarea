@@ -280,6 +280,43 @@ section { scroll-margin-top: 16px; }
 .faq details[open] summary::after { content: "−"; }
 .faq details p { margin: 0; padding: 0 18px 18px; color: var(--ink-soft); }
 
+/* Agent versus agent */
+.agent-grid { display: grid; gap: 28px; }
+@media (min-width: 920px) { .agent-grid { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); align-items: center; gap: 40px; } }
+.agent-copy { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.agent-copy > p:not(.eyebrow) { margin: 0; color: var(--ink-soft); }
+.agent-copy .eyebrow { margin: 0; }
+.agent-copy .small { font-size: 14px; }
+.agent-steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; counter-reset: step; }
+.agent-steps li { counter-increment: step; position: relative; padding-left: 42px; min-height: 28px; color: var(--ink-soft); }
+.agent-steps li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-weight: 700; font-size: 14px; }
+.agent-steps b { color: var(--ink); }
+.term { margin: 0; background: var(--code-bg); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; min-width: 0; }
+.term-bar { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.term-bar > span { width: 10px; height: 10px; border-radius: 50%; background: rgba(255, 255, 255, 0.18); }
+.term-bar code { margin-left: 8px; color: rgba(239, 233, 220, 0.6); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.term-replay { margin-left: auto; background: none; border: 1px solid rgba(255, 255, 255, 0.2); color: var(--code-ink); border-radius: 8px; padding: 4px 10px; font: inherit; font-size: 12.5px; cursor: pointer; }
+.term-replay:hover { border-color: rgba(255, 255, 255, 0.45); }
+.term-body { padding: 18px; color: var(--code-ink); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13.5px; line-height: 1.6; min-height: 420px; }
+.term-body p, .term-body ul { margin: 0 0 10px; }
+.t-user { color: #fff; background: rgba(255, 255, 255, 0.06); border-radius: 8px; padding: 8px 10px; }
+.t-prompt { color: var(--accent); margin-right: 6px; }
+.t-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #4cc48c; margin-right: 8px; vertical-align: 1px; }
+.t-dot-say { background: #efe9dc; }
+.t-out { padding-left: 16px; color: rgba(239, 233, 220, 0.75); }
+.t-say { color: #efe9dc; }
+.t-score { font-weight: 700; padding: 1px 6px; border-radius: 6px; }
+.t-gushing { color: #fff; background: #d93b3b; }
+.t-sealed { color: #10261b; background: #4cc48c; }
+.t-fixes { list-style: none; padding-left: 16px; }
+.t-fixes li { position: relative; padding-left: 18px; color: rgba(239, 233, 220, 0.85); }
+.t-fixes li::before { content: "✓"; position: absolute; left: 0; color: #4cc48c; }
+.t-fixes code, .t-out code { color: #f5b041; }
+.term figcaption { padding: 0 18px 16px; color: rgba(239, 233, 220, 0.55); font-size: 13px; }
+/* Hidden only once the script takes over, so the transcript reads fine without it. */
+.term.playing .t-line { opacity: 0; transform: translateY(4px); }
+.term.playing .t-line.shown { opacity: 1; transform: none; transition: opacity 0.35s ease, transform 0.35s ease; }
+
 /* CTA + footer */
 .cta { text-align: center; padding-top: 24px; padding-bottom: 72px; display: grid; justify-items: center; gap: 18px; }
 .cta h2 { max-width: 640px; }

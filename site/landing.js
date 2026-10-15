@@ -167,3 +167,29 @@ for (const box of document.querySelectorAll("[data-video]")) {
     box.replaceChildren(iframe);
   }, { once: true });
 }
+
+// Agent transcript: reveal line by line once it scrolls into view. Without
+// script, or with reduced motion, the whole transcript is simply there.
+const term = document.getElementById("agent-term");
+if (term && !matchMedia("(prefers-reduced-motion: reduce)").matches && "IntersectionObserver" in window) {
+  const lines = Array.from(term.querySelectorAll(".t-line"));
+  let timers = [];
+  const play = () => {
+    timers.forEach(clearTimeout);
+    term.classList.add("playing");
+    lines.forEach((l) => l.classList.remove("shown"));
+    let at = 200;
+    timers = lines.map((l) => {
+      const t = setTimeout(() => l.classList.add("shown"), at);
+      at += l.classList.contains("t-tool") ? 900 : l.closest(".t-fixes") ? 260 : 650;
+      return t;
+    });
+  };
+  term.classList.add("playing");
+  new IntersectionObserver((entries, obs) => {
+    if (entries.some((e) => e.isIntersecting)) { play(); obs.disconnect(); }
+  }, { threshold: 0.35 }).observe(term);
+  document.getElementById("agent-replay").addEventListener("click", play);
+} else if (term) {
+  document.getElementById("agent-replay").hidden = true;
+}

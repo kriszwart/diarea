@@ -26,6 +26,7 @@
     <nav aria-label="Main">
       <a href="#trailer">Trailer</a>
       <a href="#scan">Demo</a>
+      <a href="#agent">Agent</a>
       <a href="#use">Install</a>
       <a href="#faq">FAQ</a>
       <a class="nav-gh" href="https://github.com/kriszwart/diarea">GitHub</a>
@@ -108,6 +109,48 @@
           <ol class="findings" id="findings" aria-label="Findings"></ol>
           <p class="scan-note" id="scan-note">Runs <code>src/checks.js</code>, the same engine as the extension, CLI and GitHub Action.</p>
         </div>
+      </div>
+    </section>
+
+    <!-- Agent versus agent -->
+    <section class="agent wrap" id="agent" aria-labelledby="agent-title">
+      <div class="agent-grid">
+        <div class="agent-copy">
+          <p class="eyebrow">Agent versus agent</p>
+          <h2 id="agent-title">Your coding agent flushes it for you</h2>
+          <p>An agent can read your frontend and rebuild your product. So give your own agent Diarea. It scans, fixes the causes in your code, then scans again to prove the score went down.</p>
+          <ol class="agent-steps">
+            <li><b>Scan.</b> Your agent calls Diarea on your build or your deployed site.</li>
+            <li><b>Fix.</b> Every finding comes with the fix. The agent works through them, most critical first.</li>
+            <li><b>Prove it.</b> It scans again and reports the before and after.</li>
+          </ol>
+          <div class="code"><pre><code>npx diarea setup</code></pre><button class="copy" type="button">Copy</button></div>
+          <p class="small">One read-only tool over MCP. Works with Claude Code, Cursor and any MCP client. Nothing leaves your machine except the pages you ask it to scan.</p>
+        </div>
+
+        <figure class="term" id="agent-term">
+          <div class="term-bar" aria-hidden="true"><span></span><span></span><span></span><code>your-app, with Diarea</code>
+            <button class="term-replay" id="agent-replay" type="button">Replay</button></div>
+          <div class="term-body">
+            <p class="t-line t-user"><span class="t-prompt">&gt;</span> Scan the PromptPlop demo for leaks with Diarea and fix what it finds.</p>
+            <p class="t-line t-tool"><span class="t-dot"></span><b>diarea_scan</b>(target: "site/demo")</p>
+            <p class="t-line t-out">Leak Score <span class="t-score t-gushing">100/100, Gushing</span>. 10 findings, 2 critical.</p>
+            <p class="t-line t-say"><span class="t-dot t-dot-say"></span>Working through them, most critical first:</p>
+            <ul class="t-fixes">
+              <li class="t-line">Stopped publishing source maps</li>
+              <li class="t-line">Moved the keys behind the server</li>
+              <li class="t-line">Moved model routing and credit maths to <code>/api/plop</code></li>
+              <li class="t-line">Took the system prompt out of the bundle</li>
+              <li class="t-line">Called the model from the server, not the page</li>
+              <li class="t-line">Dropped the hydration blob, hidden fields and data attributes</li>
+              <li class="t-line">Minified, stripped comments, removed <code>window.promptplop</code></li>
+            </ul>
+            <p class="t-line t-tool"><span class="t-dot"></span><b>diarea_scan</b>(target: "site/demo")</p>
+            <p class="t-line t-out">Leak Score <span class="t-score t-sealed">0/100, Sealed</span>. Nothing obvious leaking.</p>
+            <p class="t-line t-say"><span class="t-dot t-dot-say"></span>Down from 100 to 0. The real defences still belong on the server: auth, rate limits, quotas.</p>
+          </div>
+          <figcaption>An example session. The scores are real: we applied these fixes to a copy of PromptPlop and Diarea scored it again.</figcaption>
+        </figure>
       </div>
     </section>
 
