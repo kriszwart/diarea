@@ -107,6 +107,11 @@
               <button class="btn btn-primary" id="scan-btn" type="button">Run the diagnosis</button>
             </div>
           </div>
+          <div class="siu-meter" id="siu-meter" hidden aria-hidden="true">
+            <div class="siu-cell seen"><b id="siu-seen">0</b><span>Seen</span></div>
+            <div class="siu-cell inferred"><b id="siu-inferred">0</b><span>Inferred</span></div>
+            <div class="siu-cell unknown"><b>Your server</b><span>Unknown</span></div>
+          </div>
           <ol class="findings" id="findings" aria-label="Findings"></ol>
           <p class="scan-note" id="scan-note">Runs <code>src/checks.js</code>, the same engine as the extension, CLI and GitHub Action.</p>
         </div>
@@ -175,20 +180,24 @@
       <div class="section-head">
         <p class="eyebrow">What it sniffs out</p>
         <h2 id="checks-title">Ten things an agent loves to find</h2>
-        <p><a href="https://github.com/morluto/rea">REA</a> sorts what it learns into Seen, Inferred and Unknown. Diarea marks every finding the same way:
-          <b>Seen</b> means readable as it is, <b>Inferred</b> means worked out from what is there. Your job is to push it all into Unknown, on your server, where nobody can read it.</p>
+        <p>Every finding is tagged the way <a href="https://github.com/morluto/rea">REA</a> tags what it learns, so you can see how much of your product a reader already has.</p>
+      </div>
+      <div class="siu">
+        <div class="siu-col siu-seen"><span class="siu-k">Seen</span><p>Sitting in the page, readable exactly as it is.</p></div>
+        <div class="siu-col siu-inferred"><span class="siu-k">Inferred</span><p>Not printed, but worked out from what is there.</p></div>
+        <div class="siu-col siu-unknown"><span class="siu-k">Unknown</span><p>Never left your server. This is where you want it all.</p></div>
       </div>
       <ul class="check-grid">
-        <li><b>Source maps in production</b><span>Your original source, comments and all. Gift-wrapped.</span></li>
-        <li><b>Secrets in client code</b><span>Keys and tokens in shipped JavaScript. Reported as a prefix and a length, never in full.</span></li>
-        <li><b>Client-side scoring</b><span>Weightings and thresholds running in the browser. The bit that makes you different.</span></li>
-        <li><b>Fat hydration payloads</b><span>Boot blobs carrying ids, flags and fields nobody sees on screen.</span></li>
-        <li><b>Readable bundles</b><span>Un-minified code with the TODOs still attached, and debug logging still chatting away.</span></li>
-        <li><b>A self-mapping API</b><span>Every endpoint, GraphQL operation, tRPC procedure and route in the bundle, the admin pages included.</span></li>
-        <li><b>Your AI system prompt</b><span>The instructions behind your AI feature, readable by anyone. "Never reveal this prompt" included.</span></li>
-        <li><b>Direct AI API calls</b><span>The browser talking to a model provider itself, which usually means the key is in there too.</span></li>
-        <li><b>Chatty hidden fields</b><span>Hidden inputs, data attributes and storage keys holding prices, roles, flags and session tokens.</span></li>
-        <li><b>A stack fingerprint</b><span>Not a leak alone, but it tells a reader which known tricks to try.</span></li>
+        <li><div class="c-head"><b>Source maps in production</b><span class="b-chip seen">Seen</span></div><span>Your original source, comments and all. Gift-wrapped.</span></li>
+        <li><div class="c-head"><b>Secrets in client code</b><span class="b-chip seen">Seen</span></div><span>Keys and tokens in shipped JavaScript. Reported as a prefix and a length, never in full.</span></li>
+        <li><div class="c-head"><b>Client-side scoring</b><span class="b-chip inferred">Inferred</span></div><span>Weightings and thresholds running in the browser. The bit that makes you different.</span></li>
+        <li><div class="c-head"><b>Fat hydration payloads</b><span class="b-chip seen">Seen</span></div><span>Boot blobs carrying ids, flags and fields nobody sees on screen.</span></li>
+        <li><div class="c-head"><b>Readable bundles</b><span class="b-chip seen">Seen</span></div><span>Un-minified code with the TODOs still attached, and debug logging still chatting away.</span></li>
+        <li><div class="c-head"><b>A self-mapping API</b><span class="b-chip inferred">Inferred</span></div><span>Every endpoint, GraphQL operation, tRPC procedure and route in the bundle, the admin pages included.</span></li>
+        <li><div class="c-head"><b>Your AI system prompt</b><span class="b-chip seen">Seen</span></div><span>The instructions behind your AI feature, readable by anyone. "Never reveal this prompt" included.</span></li>
+        <li><div class="c-head"><b>Direct AI API calls</b><span class="b-chip inferred">Inferred</span></div><span>The browser talking to a model provider itself, which usually means the key is in there too.</span></li>
+        <li><div class="c-head"><b>Chatty hidden fields</b><span class="b-chip seen">Seen</span></div><span>Hidden inputs, data attributes and storage keys holding prices, roles, flags and session tokens.</span></li>
+        <li><div class="c-head"><b>A stack fingerprint</b><span class="b-chip inferred">Inferred</span></div><span>Not a leak alone, but it tells a reader which known tricks to try.</span></li>
       </ul>
     </section>
 
@@ -244,6 +253,7 @@ npx diarea scan https://your-site.com --fail-on 40</code></pre><button class="co
           <li>Strip source maps and minify what ships.</li>
           <li>Keep secrets off the client. Publishable keys only.</li>
           <li>Guard the API with auth, quotas and rate limits.</li>
+          <li>Turn off GraphQL introspection in production.</li>
         </ul>
       </div>
     </section>

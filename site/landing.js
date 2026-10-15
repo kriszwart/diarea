@@ -98,6 +98,7 @@ async function scan() {
   $("band").style.color = "";
   $("band-line").textContent = "Reading scripts, globals, hidden fields and anything else left lying about.";
   $("basis-line").textContent = "";
+  $("siu-meter").hidden = true;
   frame.closest(".browser").classList.add("scanning");
 
   try {
@@ -117,6 +118,9 @@ async function scan() {
     $("band").style.color = colour;
     $("band-line").textContent = band.line;
     $("basis-line").textContent = basisLine(findings);
+    $("siu-seen").textContent = String(findings.filter((f) => f.basis === "seen").length);
+    $("siu-inferred").textContent = String(findings.filter((f) => f.basis === "inferred").length);
+    $("siu-meter").hidden = false;
 
     for (const f of findings) {
       list.append(findingNode(f));

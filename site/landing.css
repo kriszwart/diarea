@@ -198,8 +198,16 @@ section { scroll-margin-top: 16px; }
 .verdict { flex: 1; min-width: 200px; }
 .band { font-size: 26px; font-weight: 800; margin: 0; letter-spacing: -0.02em; }
 .band-line { color: var(--ink-soft); margin: 4px 0 14px; font-size: 15px; }
-.basis-line { color: var(--ink-faint); margin: -8px 0 14px; font-size: 13px; }
-.basis-line:empty { display: none; }
+.basis-line { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Seen / Inferred / Unknown meter, shown after a scan */
+.siu-meter { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 18px 0 0; }
+.siu-meter[hidden] { display: none; }
+.siu-cell { border: 1px solid var(--line); border-top: 3px solid var(--c); border-radius: 10px; padding: 10px 12px; text-align: center; background: var(--paper); }
+.siu-cell b { display: block; font-size: 24px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--c); }
+.siu-cell.unknown b { font-size: 16px; padding-top: 5px; }
+.siu-cell span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-faint); font-weight: 700; }
+.siu-cell.seen { --c: var(--gushing); } .siu-cell.inferred { --c: var(--info); } .siu-cell.unknown { --c: var(--sealed); }
 
 .findings { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 8px; }
 .finding { border: 1px solid var(--line); border-left: 4px solid var(--ink-faint); border-radius: 10px; padding: 10px 12px; background: var(--paper); }
@@ -232,10 +240,22 @@ section { scroll-margin-top: 16px; }
 
 /* Checks */
 .checks { padding-top: 24px; padding-bottom: 72px; }
-.check-grid { list-style: none; padding: 0; margin: 0; display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-.check-grid li { background: var(--card); padding: 18px 20px; display: grid; gap: 4px; }
+.siu { display: grid; gap: 12px; grid-template-columns: repeat(3, 1fr); margin-bottom: 18px; }
+@media (max-width: 640px) { .siu { grid-template-columns: 1fr; } }
+.siu-col { background: var(--card); border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 12px; padding: 14px 16px; }
+.siu-col p { margin: 6px 0 0; color: var(--ink-soft); font-size: 14px; }
+.siu-k { font-weight: 800; color: var(--c); letter-spacing: -0.01em; }
+.siu-seen { --c: var(--gushing); } .siu-inferred { --c: var(--info); } .siu-unknown { --c: var(--sealed); }
+.check-grid { list-style: none; padding: 0; margin: 0; display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; grid-template-columns: 1fr; }
+@media (min-width: 560px) { .check-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 960px) { .check-grid { grid-template-columns: repeat(5, 1fr); } }
+.check-grid li { background: var(--card); padding: 18px 20px; display: grid; gap: 6px; align-content: start; }
+.c-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .check-grid b { font-size: 16px; }
 .check-grid span { color: var(--ink-soft); font-size: 15px; }
+.b-chip { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 7px; border-radius: 999px; flex: none; }
+.b-chip.seen { background: color-mix(in srgb, var(--gushing) 14%, transparent); color: var(--gushing); }
+.b-chip.inferred { background: color-mix(in srgb, var(--info) 16%, transparent); color: var(--info); }
 
 /* Use */
 .use { padding-top: 24px; padding-bottom: 72px; }
