@@ -2,7 +2,13 @@
 
 All notable changes to Diarea. Versions follow [semantic versioning](https://semver.org/); while it is 0.x, a minor bump can add checks that change scores.
 
-## Unreleased
+## 0.5.0
+
+- **Seen, Inferred and Unknown.** Every finding now says whether a reader gets it as is (`seen`: secrets, source maps, prompts, payloads) or works it out from what is there (`inferred`: the API map, the logic, the stack). The report opens with the tally, and the goal is the third bucket: Unknown, which is anything kept on your server. The new `basis` field is in `--json`, SARIF (`properties.basis`), the MCP report, the Action summary, the extension and the website.
+- **The API map reads names, not just URLs.** Named GraphQL operations (`mutation GrantCredits`), tRPC procedures (from React hooks and from batched calls on the wire) and client routes (router tables and Next.js build manifests) now count, and admin, internal and staff routes are called out first. A GraphQL or tRPC app used to look small because it has one URL. SDK request descriptors such as `{ path: "/client", method: "GET" }` are not routes.
+- **Storage keys.** Telling key names in `localStorage` and `sessionStorage` (tokens, roles, plans) are reported with the hidden fields, from the page and from the code that sets them. Only names are ever read, never values. A session token in `localStorage` gets its own fix: use an HttpOnly cookie.
+- **Debug logging.** Live scans count the console messages the site's own scripts print while the page loads (a count only, never the messages), and report three or more.
+- **A bigger false-positive corpus.** `npm run corpus` now also covers React Router, Vue Router, Apollo Client, graphql-js, tRPC and TanStack Query, and still finds nothing in library code.
 
 - **Scan behind the login.** `diarea login <url>` opens a real browser, you log in yourself and press Enter, and the session is saved to `.diarea/login.json` (readable by you only, kept out of git). `--storage-state` scans as that user, in the CLI, the Action (`storage-state` input) and the MCP tool (`storage_state`). Diarea never sees or stores your password.
 - **The site's own CDN gets read.** Bundles served from `cdn.your-site.com` or a CloudFront-style host used to go unread, because a page cannot fetch across origins. Live scans now read them from Node, and the extension offers to: one click, and Chrome asks for that one site (an optional host permission, nothing at install). Third-party scripts are never read. Until they are read, an all-clear says it only covers what was read.

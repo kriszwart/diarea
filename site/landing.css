@@ -198,6 +198,8 @@ section { scroll-margin-top: 16px; }
 .verdict { flex: 1; min-width: 200px; }
 .band { font-size: 26px; font-weight: 800; margin: 0; letter-spacing: -0.02em; }
 .band-line { color: var(--ink-soft); margin: 4px 0 14px; font-size: 15px; }
+.basis-line { color: var(--ink-faint); margin: -8px 0 14px; font-size: 13px; }
+.basis-line:empty { display: none; }
 
 .findings { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 8px; }
 .finding { border: 1px solid var(--line); border-left: 4px solid var(--ink-faint); border-radius: 10px; padding: 10px 12px; background: var(--paper); }

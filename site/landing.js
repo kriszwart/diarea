@@ -2,7 +2,7 @@
  * scripts/build.js) against PromptPlop in the iframe beside it. It only ever
  * scans its own demo page, and nothing is sent anywhere.
  */
-import { analyse, scoreOf, bandOf, SEV_ORDER } from "./lib/checks.js";
+import { analyse, scoreOf, bandOf, SEV_ORDER, basisLine } from "./lib/checks.js";
 import { collectPage } from "./lib/collect-page.js";
 
 const $ = (id) => document.getElementById(id);
@@ -63,7 +63,7 @@ function findingNode(f) {
   title.textContent = f.title;
   const chip = document.createElement("span");
   chip.className = "chip";
-  chip.textContent = CHIP[f.sev] || f.sev;
+  chip.textContent = (CHIP[f.sev] || f.sev) + (f.basis ? " · " + f.basis : "");
   top.append(title, chip);
   li.append(top);
   if ((f.evidence || []).length) {
@@ -97,6 +97,7 @@ async function scan() {
   $("band").textContent = "Examining the patient";
   $("band").style.color = "";
   $("band-line").textContent = "Reading scripts, globals, hidden fields and anything else left lying about.";
+  $("basis-line").textContent = "";
   frame.closest(".browser").classList.add("scanning");
 
   try {
@@ -115,6 +116,7 @@ async function scan() {
     $("band").textContent = band.label;
     $("band").style.color = colour;
     $("band-line").textContent = band.line;
+    $("basis-line").textContent = basisLine(findings);
 
     for (const f of findings) {
       list.append(findingNode(f));

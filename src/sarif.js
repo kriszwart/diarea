@@ -38,6 +38,7 @@ export function toSarif(report, { version, target }) {
       message: { text: f.title + (f.evidence.length ? ". Evidence: " + f.evidence.join("; ") : "") + ". Fix: " + f.fix },
       locations: [{ physicalLocation: { artifactLocation: { uri: target } } }],
       partialFingerprints: { diareaFinding: `${f.id}:${target}` },
+      ...(f.basis ? { properties: { basis: f.basis } } : {}),
     });
   }
   return {

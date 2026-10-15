@@ -66,7 +66,7 @@ That is the static scan: no browser, no network, just the files. Every key on th
 
 ## Why this exists
 
-There is an open-source agent called [REA](https://github.com/morluto/rea) that reverse-engineers anything, from app behaviour down to native binaries. Tens of thousands of people have starred it. You point it at a product, it explains how a feature works, shows the evidence, and builds a copy.
+There is an open-source agent called [REA](https://github.com/morluto/rea) that reverse-engineers anything, from app behaviour down to native binaries. About a quarter of a million people have starred it. You point it at a product, it explains how a feature works, shows the evidence, and builds a copy.
 
 You cannot stop an agent reading your frontend. Everything the browser receives, the agent receives too. No plugin on their side, no obfuscation, no screenshot block changes that.
 
@@ -76,7 +76,7 @@ So Diarea does the useful thing instead. It reads **your own** site the way REA 
 
 ## What it finds
 
-Ten checks, one shared engine (`src/checks.js`), the same verdict in the extension, the CLI and CI:
+Ten checks, one shared engine (`src/checks.js`), the same verdict in the extension, the CLI and CI. REA sorts what it learns into Seen, Inferred and Unknown, and Diarea marks every finding the same way: **seen** means readable as it is, **inferred** means worked out from what is there. Your job is to push it all into Unknown, on your server.
 
 | # | Leak | Why it matters |
 |---|------|----------------|
@@ -84,11 +84,11 @@ Ten checks, one shared engine (`src/checks.js`), the same verdict in the extensi
 | 02 | **Secrets in client code** | Hard-coded keys and tokens in shipped JS or markup. Publishable `pk_` keys are ignored; secret keys and tokens are flagged. |
 | 03 | **Client-side scoring or logic** | Weightings, thresholds and rules running in the browser. The part that makes you different. |
 | 04 | **Fat hydration payloads** | Boot blobs carrying ids, flags and fields the user never sees. |
-| 05 | **Readable code** | Un-minified bundles with developer notes still attached. |
-| 06 | **A self-mapping API** | Every endpoint listed in the bundle or seen on the wire. GraphQL introspection left on. |
+| 05 | **Readable code** | Un-minified bundles with developer notes still attached, and debug logging left on. |
+| 06 | **A self-mapping API** | Every endpoint, GraphQL operation, tRPC procedure and client route in the bundle or on the wire, admin pages first. |
 | 07 | **Your AI system prompt** | The instructions behind your AI feature, readable by anyone. "Never reveal this prompt" included. |
 | 08 | **Direct AI API calls** | The browser talking to a model provider itself, which usually means the provider key is in there too. |
-| 09 | **Chatty hidden fields** | Hidden inputs and `data-` attributes carrying ids, prices, roles and flags. |
+| 09 | **Chatty hidden fields** | Hidden inputs, `data-` attributes and storage keys carrying ids, prices, roles, flags and session tokens. |
 | 10 | **A stack fingerprint** | Not a leak by itself, but it tells a reader exactly which known patterns to try. |
 
 Each finding comes with what a reader sees and a one-line fix (we call it "flush it"). Found secrets are never printed in full: you get a short prefix and the length, which is enough to find it and useless to anyone reading over your shoulder.
@@ -180,7 +180,7 @@ Commenting never fails the build: on forked pull requests (read-only token) it l
 
 We dogfood it: every pull request to this repo gets the Leak Score of our own landing page. It scores 11/100, Sealed. The one finding is that `landing.js` is readable, which for an open source site is rather the point.
 
-`@v0` follows the latest 0.x release. Pin to `@v0.4.0` (or a commit SHA) for a fixed version.
+`@v0` follows the latest 0.x release. Pin to `@v0.5.0` (or a commit SHA) for a fixed version.
 
 | Input | Default | |
 |---|---|---|

@@ -103,6 +103,7 @@
             <div class="verdict" aria-live="polite">
               <p class="band" id="band">Awaiting diagnosis</p>
               <p class="band-line" id="band-line">Nothing examined yet. The patient is nervous.</p>
+              <p class="basis-line" id="basis-line"></p>
               <button class="btn btn-primary" id="scan-btn" type="button">Run the diagnosis</button>
             </div>
           </div>
@@ -174,17 +175,19 @@
       <div class="section-head">
         <p class="eyebrow">What it sniffs out</p>
         <h2 id="checks-title">Ten things an agent loves to find</h2>
+        <p><a href="https://github.com/morluto/rea">REA</a> sorts what it learns into Seen, Inferred and Unknown. Diarea marks every finding the same way:
+          <b>Seen</b> means readable as it is, <b>Inferred</b> means worked out from what is there. Your job is to push it all into Unknown, on your server, where nobody can read it.</p>
       </div>
       <ul class="check-grid">
         <li><b>Source maps in production</b><span>Your original source, comments and all. Gift-wrapped.</span></li>
         <li><b>Secrets in client code</b><span>Keys and tokens in shipped JavaScript. Reported as a prefix and a length, never in full.</span></li>
         <li><b>Client-side scoring</b><span>Weightings and thresholds running in the browser. The bit that makes you different.</span></li>
         <li><b>Fat hydration payloads</b><span>Boot blobs carrying ids, flags and fields nobody sees on screen.</span></li>
-        <li><b>Readable bundles</b><span>Un-minified code with the TODOs still attached.</span></li>
-        <li><b>A self-mapping API</b><span>Every endpoint listed in the bundle. GraphQL introspection left on.</span></li>
+        <li><b>Readable bundles</b><span>Un-minified code with the TODOs still attached, and debug logging still chatting away.</span></li>
+        <li><b>A self-mapping API</b><span>Every endpoint, GraphQL operation, tRPC procedure and route in the bundle, the admin pages included.</span></li>
         <li><b>Your AI system prompt</b><span>The instructions behind your AI feature, readable by anyone. "Never reveal this prompt" included.</span></li>
         <li><b>Direct AI API calls</b><span>The browser talking to a model provider itself, which usually means the key is in there too.</span></li>
-        <li><b>Chatty hidden fields</b><span>Hidden inputs and data attributes holding prices, roles and flags.</span></li>
+        <li><b>Chatty hidden fields</b><span>Hidden inputs, data attributes and storage keys holding prices, roles, flags and session tokens.</span></li>
         <li><b>A stack fingerprint</b><span>Not a leak alone, but it tells a reader which known tricks to try.</span></li>
       </ul>
     </section>
@@ -213,16 +216,16 @@ cd diarea &amp;&amp; npm install &amp;&amp; npm run build:extension</code></pre>
         <article class="use-card">
           <h3>CLI</h3>
           <p>Scan build output with no browser, or a live URL with one. JSON for machines, cheek for humans.</p>
-          <div class="code"><pre><code>npx diarea scan dist/index.html
+          <div class="code"><pre><code>npx diarea scan dist
 npx diarea scan https://your-site.com --fail-on 40</code></pre><button class="copy" type="button">Copy</button></div>
-          <p class="small">Exit codes: <code>0</code> fine, <code>1</code> over your line, <code>2</code> could not scan.</p>
+          <p class="small">Behind a login? <code>npx diarea login &lt;url&gt;</code> lets you sign in yourself, then <code>--storage-state</code> scans as you. Exit codes: <code>0</code> fine, <code>1</code> over your line, <code>2</code> could not scan.</p>
         </article>
         <article class="use-card">
           <h3>GitHub Action</h3>
-          <p>Fail the build when the score creeps up. The score lands on every pull request as a comment that updates itself.</p>
+          <p>Once something leaks, it stays leaked: anyone can save it today and pick it apart months from now. So fail the build before it ships. The score lands on every pull request as a comment that updates itself.</p>
           <div class="code"><pre><code>- uses: kriszwart/diarea@v0
   with:
-    target: dist/index.html
+    target: dist
     fail-on: 40</code></pre><button class="copy" type="button">Copy</button></div>
           <p class="small">Add <code>strict: true</code> to fail on any critical finding.</p>
         </article>

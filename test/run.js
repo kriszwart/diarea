@@ -5,7 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { analyse, scoreOf, bandOf } from "../src/checks.js";
+import { analyse, scoreOf, bandOf, basisLine } from "../src/checks.js";
 import { collectStatic } from "../src/collect-static.js";
 import { renderSummary } from "../scripts/action-summary.js";
 import { commentBody, keyOf, movement, previousScore, upsertComment } from "../scripts/pr-comment.js";
@@ -388,6 +388,34 @@ calls.length = 0;
 setup(["--allow-private"], { log: () => {}, run: (cmd, args) => { calls.push(args.join(" ")); return { status: 0, stdout: "", stderr: "" }; } });
 check(calls[1] === "mcp add --scope user diarea -- npx -y diarea@latest mcp --allow-private", "setup --allow-private opts the server in, explicitly");
 fs.rmSync(tmp, { recursive: true, force: true });
+
+console.log("Seen, Inferred and Unknown:");
+const demoReport = await scan(path.join(root0(), "site", "demo"));
+check(demoReport.findings.every((f) => f.basis === "seen" || f.basis === "inferred"), "every finding is Seen or Inferred");
+check(/^Seen \d+, Inferred \d+\./.test(basisLine(demoReport.findings)) && /Unknown/.test(basisLine([])), "the report says how much a reader gets");
+check(toSarif(demoReport, { version: "0", target: "x" }).runs[0].results.every((r) => r.properties && r.properties.basis), "SARIF results carry the basis");
+
+console.log("Maps by name:");
+const apiMap = (input) => analyse(input).findings.find((f) => f.id === "api-map");
+const demoMap = demoReport.findings.find((f) => f.id === "api-map");
+check(/GraphQL operations/.test(demoMap.title) && demoMap.evidence.some((e) => /mutation GrantCredits/.test(e)), "GraphQL operations are listed by name");
+check(demoMap.evidence.some((e) => /^routes: .*\/admin\/users/.test(e)), "admin and internal routes are called out");
+check(/tRPC procedure/.test((apiMap({ inlineScripts: ["a.billing.refund.useMutation({});"] }) || {}).title), "tRPC procedures from hooks");
+check(/2 tRPC procedures/.test((apiMap({ networkUrls: ["https://x.test/api/trpc/user.me,post.list"] }) || {}).title), "tRPC procedures from batched calls on the wire");
+check(/^2 routes/.test((apiMap({ inlineScripts: ['self.__BUILD_MANIFEST={__rewrites:{afterFiles:[]},"/":["a.js"],"/staff/payouts":["b.js"],"/_error":["c.js"],"/posts/[id]":["d.js"]}'] }) || {}).title),
+  "routes from a Next.js build manifest, without framework pages");
+// SDKs describe API requests as { path, method }; that is not a route table.
+check(!apiMap({ inlineScripts: ['c={path:"/client",method:"GET"};d={path:"/admin/x",method:"POST"};'] }), "request descriptors are not routes");
+
+console.log("Storage keys and console output:");
+const hidden = (input) => analyse(input).findings.find((f) => f.id === "hidden-fields");
+const store = hidden({ inlineScripts: ['localStorage.setItem("auth_token",t);localStorage.getItem("theme");'] });
+check(store && store.evidence.includes("localStorage: auth_token") && /HttpOnly/.test(store.fix), "a token in localStorage is flagged by name");
+check(!hidden({ storageKeys: ["localStorage: theme", "sessionStorage: scroll"] }), "harmless storage keys are left alone");
+check(demoReport.findings.find((f) => f.id === "hidden-fields").evidence.some((e) => /promptplop_session_token/.test(e)), "the demo's session key is found");
+const logs = analyse({ consoleLogs: 7 }).findings.find((f) => f.id === "readable-code");
+check(logs && logs.sev === "info" && /7 console messages/.test(logs.evidence[0]), "debug logging on load is reported, as a count");
+check(!analyse({ consoleLogs: 2 }).findings.length, "a couple of console messages are not");
 
 console.log(failed === 0
   ? `\nAll ${expected.length} checks fired and every guard passed. Engine is working.\n`

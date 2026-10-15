@@ -7,7 +7,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline";
-import { SEV_ORDER } from "./checks.js";
+import { SEV_ORDER, basisLine } from "./checks.js";
 import { scan, isUrl } from "./scan.js";
 import { makeGuard } from "./guard.js";
 
@@ -45,9 +45,10 @@ export const TOOLS = [
 export function renderReport(r) {
   const findings = r.findings.slice().sort((a, b) => SEV_ORDER[a.sev] - SEV_ORDER[b.sev]);
   const out = [`Diarea Leak Score for ${r.host || r.url}: ${r.score}/100, ${r.band} (${r.mode}).`, ""];
+  out.push(basisLine(findings), "");
   if (!findings.length) out.push("Nothing obvious leaking. Keep the real defences server-side.");
   findings.forEach((f, i) => {
-    out.push(`${i + 1}. [${LABEL[f.sev] || f.sev}] ${f.title}`);
+    out.push(`${i + 1}. [${LABEL[f.sev] || f.sev}${f.basis ? ", " + f.basis : ""}] ${f.title}`);
     out.push(`   What a reader sees: ${f.detail}`);
     if (f.evidence && f.evidence.length) out.push(`   Evidence: ${f.evidence.slice(0, 5).join("; ")}`);
     out.push(`   Fix: ${f.fix}`);

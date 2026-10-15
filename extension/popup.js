@@ -10,7 +10,7 @@
  * offers to read those, and only those: it asks Chrome for that origin with an
  * optional host permission, then fetches the scripts itself.
  */
-import { analyse, scoreOf, bandOf, SEV_ORDER } from "./lib/checks.js";
+import { analyse, scoreOf, bandOf, SEV_ORDER, basisLine } from "./lib/checks.js";
 import { collectPage } from "./lib/collect-page.js";
 import { crossOriginScripts, mapUrlFor, isSourceMap } from "./lib/cross-origin.js";
 
@@ -129,6 +129,7 @@ function render(res) {
   pills[0].textContent = counts.crit;
   pills[1].textContent = counts.warn;
   pills[2].textContent = counts.info;
+  tpl.querySelector(".basis").textContent = basisLine(findings);
 
   const list = tpl.querySelector(".findings");
   if (!findings.length) {
@@ -188,7 +189,7 @@ function buildFinding(f) {
   det.classList.add("sev-" + f.sev);
   node.querySelector(".f-title").textContent = f.title;
   node.querySelector(".f-chip").textContent =
-    f.sev === "crit" ? "critical" : f.sev === "warn" ? "exposed" : "minor";
+    (f.sev === "crit" ? "critical" : f.sev === "warn" ? "exposed" : "minor") + (f.basis ? " · " + f.basis : "");
   node.querySelector(".f-detail").textContent = f.detail;
   node.querySelector(".fix-text").textContent = f.fix;
 

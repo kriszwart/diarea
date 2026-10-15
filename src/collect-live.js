@@ -95,6 +95,17 @@ export async function collectLive(url, opts = {}) {
       } catch {}
     });
 
+    // Debug logging from the site's own scripts. Only a count is kept: the
+    // messages themselves can hold anything, including the page's data.
+    let consoleLogs = 0;
+    page.on("console", (msg) => {
+      try {
+        if (!["log", "debug", "info"].includes(msg.type())) return;
+        const from = msg.location() && msg.location().url;
+        if (from && new URL(from).origin === new URL(page.url()).origin) consoleLogs++;
+      } catch {}
+    });
+
     // Load once, then give the app a moment to go quiet. Sites that never
     // go idle (analytics, websockets) are scanned as they are, rather than
     // being loaded a second time.
@@ -113,6 +124,7 @@ export async function collectLive(url, opts = {}) {
     const pageTraffic = Array.from(networkUrls);
     const collected = await page.evaluate(collectPage);
     collected.networkUrls = pageTraffic;
+    collected.consoleLogs = consoleLogs;
 
     // From a fresh context, without the saved login: a CDN script should not need one.
     const bare = await browser.newContext();

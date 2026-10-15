@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Diarea",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Finds what your frontend leaks: keys, source maps, API maps and AI prompts, scored Sealed to Gushing. Local only.",
   "homepage_url": "https://diarea.tools/",
   "icons": {

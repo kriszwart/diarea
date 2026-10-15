@@ -74,6 +74,15 @@ export async function collectPage() {
       }
     });
 
+  // Names of storage keys only. Values (live sessions, tokens) are never read.
+  const storageKeys = [];
+  for (const [label, store] of [["localStorage", "localStorage"], ["sessionStorage", "sessionStorage"]]) {
+    try {
+      const st = window[store];
+      for (let k = 0; k < Math.min(st.length, 100); k++) storageKeys.push(label + ": " + clip(String(st.key(k)), 60));
+    } catch { /* blocked; skip */ }
+  }
+
   const fp = [];
   if (window.__NEXT_DATA__ || document.querySelector("#__next")) fp.push("Next.js");
   if (window.__NUXT__) fp.push("Nuxt");
@@ -88,7 +97,7 @@ export async function collectPage() {
     url: location.href, host: location.host, origin,
     inlineScripts, bundles, html: document.documentElement.outerHTML,
     globals, biggestStateBytes, biggestJsonBytes, liveMapFound, mapFiles,
-    hiddenFields, dataAttrs, frameworks: fp, networkUrls: [],
+    hiddenFields, dataAttrs, frameworks: fp, networkUrls: [], storageKeys,
     scanned: bundles.length,
     external: externalSrcs.length,
     // Every script URL, so the caller can read the site's own CDN scripts,

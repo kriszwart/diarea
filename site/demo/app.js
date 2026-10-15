@@ -33,6 +33,23 @@ const api = {
   legacy: "/rest/v0/old-router",
 };
 
+// Named queries, so the whole data model reads like a menu.
+const QUERIES = {
+  me: "query CurrentUser { me { id email role creditsRemaining isInvestor } }",
+  grant: "mutation GrantCredits($userId: ID!, $amount: Int!) { grantCredits(userId: $userId, amount: $amount) { ok } }",
+};
+
+// Every page, including the ones we never link to.
+const ROUTES = [
+  { path: "/build", component: "BuildPage" },
+  { path: "/pricing", component: "PricingPage" },
+  { path: "/admin/users", component: "AdminUsers" },
+  { path: "/internal/credits-ledger", component: "CreditsLedger" },
+];
+
+// The session lives where every script on the page can read it.
+const SESSION_KEY = (() => { try { return localStorage.getItem("promptplop_session_token"); } catch { return null; } })();
+
 /* The secret sauce: model routing.
  * Weighting rubric v4, calibrated against "it felt right".
  * Picks the cheapest model whose answer still sounds confident.
@@ -83,5 +100,5 @@ function onSubmit(event) {
 document.getElementById("build-form").addEventListener("submit", onSubmit);
 
 // HACK: expose everything on window so the debug panel works in production
-window.promptplop = { config, api, SYSTEM_PROMPT, routeModel, creditsFor, ROUTING_WEIGHTS, QUALITY_THRESHOLD, CREDIT_FORMULA, COMPLEXITY_HEURISTIC };
+window.promptplop = { config, api, QUERIES, ROUTES, SESSION_KEY, SYSTEM_PROMPT, routeModel, creditsFor, ROUTING_WEIGHTS, QUALITY_THRESHOLD, CREDIT_FORMULA, COMPLEXITY_HEURISTIC };
 //# sourceMappingURL=app.js.map

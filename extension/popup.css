@@ -123,6 +123,7 @@ main::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
   letter-spacing: -0.01em; margin-bottom: 2px;
 }
 .verdict { margin: 2px 0 10px; font-size: 11.5px; color: var(--ink-dim); }
+.basis { margin: 8px 0 0; font-size: 11px; color: var(--ink-dim); }
 .counts { display: flex; flex-wrap: wrap; gap: 6px; }
 .pill {
   font-size: 10px; padding: 3px 7px; border-radius: 5px;

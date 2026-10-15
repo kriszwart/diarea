@@ -3,7 +3,7 @@
  * Local and read-only. Usage: diarea scan <url|file> [options]
  */
 import fs from "node:fs";
-import { scoreOf, bandOf, SEV_ORDER } from "../src/checks.js";
+import { scoreOf, bandOf, SEV_ORDER, basisLine } from "../src/checks.js";
 import { scan, isUrl } from "../src/scan.js";
 
 const VERSION = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
@@ -110,6 +110,7 @@ function renderHuman(result, mode, s) {
   out.push(`  ${s.mag("\u{1F4A9} diarea")}  ${s.dim(result.host || result.url || "")}`);
   out.push(`  ${s.bold(`Leak Score ${score}/100`)}  ${bandColour(band.label)}  ${s.dim(band.line)}`);
   out.push(`  ${s.crit(counts.crit + " critical")}   ${s.warn(counts.warn + " exposed")}   ${s.info(counts.info + " minor")}`);
+  out.push(`  ${s.dim(basisLine(findings))}`);
   out.push("");
 
   if (!findings.length) {
@@ -118,7 +119,7 @@ function renderHuman(result, mode, s) {
   }
   for (const f of findings) {
     const tag = f.sev === "crit" ? s.crit("[CRIT]") : f.sev === "warn" ? s.warn("[WARN]") : s.info("[INFO]");
-    out.push(`  ${tag} ${s.bold(f.title)}`);
+    out.push(`  ${tag} ${s.bold(f.title)}${f.basis ? "  " + s.dim(f.basis) : ""}`);
     out.push(`         ${wrap(f.detail, 74, "         ")}`);
     for (const e of (f.evidence || []).slice(0, 4)) out.push(`         ${s.dim("- " + e)}`);
     out.push(`         ${s.mag("flush it:")} ${wrap(f.fix, 74, "         ")}`);

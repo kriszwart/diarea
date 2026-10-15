@@ -5,8 +5,11 @@
  * findings. The browser extension and the CLI each collect that snapshot in
  * their own way (real DOM, Playwright, or jsdom) and then call analyse().
  *
- * A finding is { sev, title, detail, fix, evidence[] }.
+ * A finding is { id, sev, basis, title, detail, fix, evidence[] }.
  * sev is "crit" | "warn" | "info".
+ * basis is "seen" (sitting in the page, readable as is) or "inferred" (a
+ * reader can work it out from what is there). Anything kept on your server is
+ * Unknown to a reader, which is where you want everything to be.
  */
 
 export const SEV_WEIGHT = { crit: 26, warn: 11, info: 3 };
@@ -19,6 +22,21 @@ export const BANDS = [
 ];
 
 export const SEV_ORDER = { crit: 0, warn: 1, info: 2 };
+
+// Seen: readable as is. Inferred: worked out from what is there.
+export const BASIS = {
+  "source-maps": "seen", secrets: "seen", "public-anon-key": "seen", "hydration-payload": "seen",
+  "hydration-state": "seen", "readable-code": "seen", "hidden-fields": "seen", "ai-system-prompt": "seen",
+  "client-logic": "inferred", "api-map": "inferred", "ai-direct-call": "inferred", fingerprint: "inferred",
+};
+
+/** One line on how much of the product a reader gets, in Seen, Inferred and Unknown. */
+export function basisLine(findings) {
+  const seen = findings.filter((f) => f.basis === "seen").length;
+  const inferred = findings.filter((f) => f.basis === "inferred").length;
+  if (!seen && !inferred) return "Seen 0, Inferred 0. Everything a reader wants is Unknown. Keep it that way.";
+  return `Seen ${seen}, Inferred ${inferred}. Push it all into Unknown: on your server, not in the page.`;
+}
 
 const uniq = (a) => Array.from(new Set(a));
 // Never print a found secret: show a short prefix and its length only.
@@ -48,6 +66,8 @@ function jwtRole(token) {
  *   dataAttrs                - string[] telltale data-* strings
  *   frameworks               - string[] detected framework names
  *   networkUrls              - string[] endpoints observed on the wire (optional)
+ *   storageKeys              - string[] "localStorage: name" key names, never values (optional)
+ *   consoleLogs              - number   log/debug messages the site's own scripts printed (optional, live)
  * @returns {{url, host, findings}}
  */
 export function analyse(input = {}) {
@@ -56,14 +76,14 @@ export function analyse(input = {}) {
     inlineScripts: [], bundles: [], html: "",
     globals: [], biggestStateBytes: 0, biggestJsonBytes: 0,
     liveMapFound: false, mapFiles: [], hiddenFields: [], dataAttrs: [],
-    frameworks: [], networkUrls: [],
+    frameworks: [], networkUrls: [], storageKeys: [], consoleLogs: 0,
     ...input,
   };
 
   const F = [];
   // id is stable across releases (SARIF rule ids, dashboards); titles are not.
   const add = (id, sev, title, detail, fix, evidence) =>
-    F.push({ id, sev, title, detail, fix, evidence: (evidence || []).filter(Boolean) });
+    F.push({ id, sev, basis: BASIS[id], title, detail, fix, evidence: (evidence || []).filter(Boolean) });
 
   const js = i.inlineScripts.concat(i.bundles.map((b) => b.body || "")).join("\n");
   const html = i.html || "";
@@ -216,11 +236,18 @@ export function analyse(input = {}) {
       break;
     }
   }
+  // Debug logging from the site's own scripts (live scans count it).
+  const logs = i.consoleLogs >= 3 ? i.consoleLogs + " console messages on load (debug logging left on)" : "";
   if (readable) {
     add("readable-code", "warn", "Shipped code is readable",
       "A production bundle is not minified, or carries comments and developer notes. That turns reading your logic from a chore into a scroll.",
       "Minify for production. Strip comments and dev notes from shipped code.",
-      [pathOf(readable.url) + (readable.comments ? "  (contains comments / TODOs)" : "  (not minified)")]);
+      [pathOf(readable.url) + (readable.comments ? "  (contains comments / TODOs)" : "  (not minified)"), logs]);
+  } else if (logs) {
+    add("readable-code", "info", "Debug logging left on in production",
+      "The site's own scripts print to the console as the page loads. Debug output narrates what the code is doing, often with ids, state and internal names.",
+      "Drop console logging from production builds (most bundlers have a drop_console or pure_funcs option).",
+      [logs]);
   }
 
   // 6. API surface is easy to map
@@ -250,22 +277,60 @@ export function analyse(input = {}) {
     const g = e.replace(/\/(?:[0-9a-f]{16,}|(?=[^/]*\d)[A-Za-z0-9_-]{32,})(?=\/|$)/gi, "/*");
     groups.set(g, (groups.get(g) || 0) + 1);
   }
-  const graphql = eps.some((e) => /graphql/i.test(e));
-  if (eps.length >= 6 || graphql) {
-    add("api-map", "info", eps.length + " API endpoints visible" + (graphql ? " (GraphQL)" : ""),
-      "Endpoints in the bundle or on the wire let someone draw your API map without guessing. Expected to a degree, but a fully introspectable API makes bulk extraction trivial.",
-      "Add auth, rate limits and per-account quotas. If GraphQL, disable introspection in production.",
-      Array.from(groups).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([g, n]) => (n > 1 ? `${g} (${n})` : g)));
+  // Named GraphQL operations (in gql strings and persisted-query documents)
+  // and tRPC procedures map the API by name, however few URLs there are.
+  const gqlOps = uniq(Array.from(haystack.matchAll(/(?<![\w$.])(query|mutation|subscription)\s+([A-Z][A-Za-z0-9_]{2,})\s*[({]/g),
+    (m) => m[1] + " " + m[2]));
+  const trpcProcs = uniq(Array.from(js.matchAll(/\.([a-z][A-Za-z0-9_]*\.[a-z][A-Za-z0-9_]*)\.(?:useQuery|useSuspenseQuery|useInfiniteQuery|useMutation)\(/g), (m) => m[1])
+    .concat((i.networkUrls || []).flatMap((u) => { const m = u.match(/\/trpc\/([^?#]+)$/); return m ? decodeURIComponent(m[1]).split(",") : []; })));
+  // Client routes: router tables and Next.js build manifests. A route entry
+  // names what it renders (element, component...), which keeps out the
+  // { path: "/client", method: "GET" } request descriptors SDKs carry.
+  const routeOf = /^\/[A-Za-z0-9_\-\/:.*\[\]]*$/;
+  // Next.js pages manifest: each page route maps to its chunk list.
+  const at = js.indexOf("__BUILD_MANIFEST");
+  const manifest = at < 0 ? "" : js.slice(at, at + 20000);
+  const rendersRe = "(?:element|component|Component|components|loader|lazy|children|redirect|redirectTo|loadChildren|loadComponent)\\s*:";
+  const routeEntry = new RegExp("(?<![\\w$])path\\s*:\\s*[\"'`](\\/[^\"'`\\s]{1,80})[\"'`]\\s*,[^{}]{0,200}?(?<![\\w$])" + rendersRe, "g");
+  const routes = uniq(Array.from(js.matchAll(routeEntry), (m) => m[1])
+    .concat(Array.from(manifest.matchAll(/["'](\/[^"'\s]{1,80})["']\s*:\s*\[/g), (m) => m[1]))
+    .filter((r) => r.length > 1 && routeOf.test(r) && !/^\/(?:_|404$|500$)/.test(r)));
+  const tender = /^\/(?:admin|internal|staff|debug|dev|backoffice|back-office|ops|superuser|sudo|moderat\w*|impersonat\w*)(?:[\/:]|$)/i;
+  const tenderRoutes = routes.filter((r) => tender.test(r));
+  const graphql = eps.some((e) => /graphql/i.test(e)) || gqlOps.length > 0;
+  if (eps.length >= 6 || graphql || trpcProcs.length || tenderRoutes.length || routes.length >= 8) {
+    const parts = [];
+    if (eps.length) parts.push(eps.length + " API endpoint" + (eps.length > 1 ? "s" : ""));
+    if (gqlOps.length) parts.push(gqlOps.length + " GraphQL operation" + (gqlOps.length > 1 ? "s" : ""));
+    if (trpcProcs.length) parts.push(trpcProcs.length + " tRPC procedure" + (trpcProcs.length > 1 ? "s" : ""));
+    if (routes.length) parts.push(routes.length + " route" + (routes.length > 1 ? "s" : ""));
+    const title = parts.length > 1 ? parts.slice(0, -1).join(", ") + " and " + parts[parts.length - 1] : parts[0];
+    const list = (label, a) => (a.length ? label + a.slice(0, 4).join(", ") + (a.length > 4 ? ` (+${a.length - 4} more)` : "") : "");
+    add("api-map", "info", title + " visible" + (graphql && !gqlOps.length ? " (GraphQL)" : ""),
+      "Endpoints, operation names and routes in the bundle or on the wire let someone draw your API and your app's map without guessing, including the admin and internal pages. Expected to a degree, but a fully mapped API makes bulk extraction trivial.",
+      "Add auth, rate limits and per-account quotas. If GraphQL, disable introspection in production. Keep admin and internal pages out of the public bundle, and check every one of them on the server.",
+      // Names and hidden routes first: they say more than one more URL.
+      [list("routes: ", tenderRoutes.length ? tenderRoutes : routes), list("GraphQL: ", gqlOps), list("tRPC: ", trpcProcs)]
+        .concat(Array.from(groups).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([g, n]) => (n > 1 ? `${g} (${n})` : g))));
   }
 
   // 7. Hidden fields and data-* carrying meaning
   const leakyFields = uniq((i.hiddenFields || [])
     .filter((n) => /id|price|cost|token|key|secret|internal|flag|role|admin|user/i.test(n)));
-  if (leakyFields.length || (i.dataAttrs || []).length) {
-    add("hidden-fields", "info", "Hidden fields and data attributes carry meaning",
-      "Hidden inputs and data- attributes travel in the markup. When they hold ids, prices or flags, they describe your model to anyone who reads the DOM.",
-      "Keep identifiers and internal flags server-side. Do not trust or expose values the browser can edit.",
-      uniq(leakyFields.concat(i.dataAttrs || [])).slice(0, 5));
+  // Storage key names, from the live page and from the code that sets them.
+  const tellingKey = /token|auth|jwt|session|secret|role|admin|permission|plan|tier|credit/i;
+  const storageKeys = uniq((i.storageKeys || []).concat(Array.from(
+    js.matchAll(/\b(local|session)Storage\.(?:setItem|getItem)\(\s*["'`]([^"'`$]{2,60})["'`]/g), (m) => m[1] + "Storage: " + m[2])))
+    .filter((k) => tellingKey.test(k.replace(/^\w+: /, "")));
+  const tokenInStorage = storageKeys.some((k) => /^localStorage: .*(?:token|jwt|auth)/i.test(k));
+  if (leakyFields.length || (i.dataAttrs || []).length || storageKeys.length) {
+    add("hidden-fields", "info",
+      (storageKeys.length ? (leakyFields.length || i.dataAttrs.length ? "Hidden fields, data attributes and storage keys" : "Storage keys") : "Hidden fields and data attributes") + " carry meaning",
+      "Hidden inputs, data- attributes and browser storage keys travel with the page. When they hold ids, prices, roles or flags, they describe your model to anyone who reads the DOM." +
+        (tokenInStorage ? " A session token in localStorage is also readable by every script on the page, third-party ones included." : ""),
+      "Keep identifiers and internal flags server-side. Do not trust or expose values the browser can edit." +
+        (tokenInStorage ? " Keep session tokens in HttpOnly cookies, not localStorage." : ""),
+      storageKeys.slice(0, 2).concat(uniq(leakyFields.concat(i.dataAttrs || []))).slice(0, 6));
   }
 
   // 8. AI system prompt shipped to the client

@@ -1,7 +1,7 @@
 /* Markdown for the Action's job summary and pull request comment, built from
  * the CLI's JSON report. Evidence is already redacted by src/checks.js.
  */
-import { SEV_ORDER } from "../src/checks.js";
+import { SEV_ORDER, basisLine } from "../src/checks.js";
 
 const LABEL = { crit: "critical", warn: "exposed", info: "minor" };
 const cell = (s) => String(s).replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
@@ -30,7 +30,7 @@ export function renderSummary({ report, exitCode, failOn = "", strict = false, h
   lines.push("");
   if (headline) { lines.push(headline); lines.push(""); }
   lines.push(`Scanned ${code(report.host || report.url || "")} in ${report.mode} mode. ` +
-    `${counts.crit} critical, ${counts.warn} exposed, ${counts.info} minor.`);
+    `${counts.crit} critical, ${counts.warn} exposed, ${counts.info} minor. ${basisLine(findings)}`);
   lines.push("");
   if (findings.length) {
     lines.push("| Severity | Finding | Evidence | Flush it |");
