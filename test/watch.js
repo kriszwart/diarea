@@ -7,6 +7,9 @@ import os from "node:os";
 import path from "node:path";
 import { makeParser, uaClass, loadAllow } from "../src/watch-parse.js";
 import { watch, watchLines, parseDuration } from "../src/watch.js";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+const cli = (...args) => spawnSync(process.execPath, [fileURLToPath(new URL("../bin/diarea.js", import.meta.url)), ...args], { encoding: "utf8" });
 
 export const T0 = Date.UTC(2026, 9, 14, 9, 0, 0);
 export const BROWSER = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36";
@@ -199,4 +202,20 @@ export async function watchTests(check) {
   check(missing.includes("no-such-access.log") && !missing.includes(process.cwd()), "a missing file is named as given");
   const onDisk = await watch(tmp("access.log", LOGS.sweep().map(asClf).join("\r\n") + "\r\n"), { salt: "test" });
   check(onDisk.findings.some((f) => f.id === "param-sweep"), "a log file with CRLF endings is read from disk");
+  const cleanLog = tmp("clean.log", LOGS.clean().map(asClf).join("\n"));
+  const mixLog = tmp("mix.log", all.map(asClf).join("\n"));
+  const c0 = cli("watch", cleanLog, "--no-color");
+  check(c0.status === 0 && /Watch Score 0\/100/.test(c0.stdout) && /Sealed/.test(c0.stdout), "diarea watch: a clean log exits 0");
+  const c1 = cli("watch", mixLog, "--fail-on", "40", "--no-color");
+  check(c1.status === 1 && /\[CRIT\] Something is sweeping a parameter/.test(c1.stdout) && /block/.test(c1.stdout),
+    "diarea watch: --fail-on exits 1 and the text report names findings and tiers");
+  check(!ips.some((ip) => c1.stdout.includes(ip)) && !/Mozilla|amount=/.test(c1.stdout), "the text report holds no IP, value or user agent");
+  const cj = cli("watch", mixLog, "--json");
+  let parsed = null;
+  try { parsed = JSON.parse(cj.stdout); } catch {}
+  check(cj.status === 0 && parsed && parsed.mode === "watch" && parsed.findings.length === 5, "diarea watch --json prints the report");
+  check(cli("watch", tmp("empty.log", "")).status === 2, "an empty log exits 2");
+  check(cli("watch", cleanLog, "--since", "3x").status === 2, "a bad --since exits 2");
+  check(cli("watch", cleanLog, "--sarif").status === 2, "--sarif is refused for watch");
+  check(cli("scan", cleanLog, "--since", "1h").status === 2, "--since is refused for scan");
 }

@@ -24,6 +24,8 @@ Usage:
   diarea setup --print           Show the MCP config for other agents
   diarea setup --allow-private   ...and let the agent scan localhost and private networks
   diarea mcp                     Run the MCP server (agents start this for you)
+  diarea watch <access.log>      Read a server log for agent-style use of your API (sweeps, id walks, sign-up bursts)
+  cat access.log | diarea watch -
 
 Options:
   --json             Output the report as JSON
@@ -32,6 +34,8 @@ Options:
   --strict           Exit 1 if any critical finding is present
   --timeout <ms>     Navigation timeout for live scans (default 30000)
   --storage-state <file>  Scan as a logged-in user (a file saved by diarea login)
+  --since <30m|24h|7d>  watch: only the newest stretch of the log
+  --allow <file>        watch: JSON allowlist of networks, user agents and API key prefixes
   --no-color         Disable colour
   -h, --help         Show this help
   -v, --version      Show version
@@ -41,10 +45,11 @@ Examples:
   diarea scan --html dist/index.html --json
   diarea login https://your-site.com/login
   diarea scan https://your-site.com/dashboard --storage-state .diarea/login.json
+  diarea watch /var/log/nginx/access.log --since 24h --fail-on 40
 `;
 
 function parseArgs(argv) {
-  const o = { _: [], json: false, sarif: false, strict: false, color: true, timeout: 30000, failOn: null, html: null, storageState: null, errors: [] };
+  const o = { _: [], json: false, sarif: false, strict: false, color: true, timeout: 30000, failOn: null, html: null, storageState: null, since: null, allow: null, errors: [] };
   // A flag that needs a value must get one, and numbers must be numbers:
   // a typo should fail loudly, not quietly turn off a CI gate.
   const value = (k, name) => {
@@ -70,6 +75,8 @@ function parseArgs(argv) {
     else if (a === "--storage-state") o.storageState = value(++k, "--storage-state");
     else if (a === "--fail-on") o.failOn = number(value(++k, "--fail-on"), "--fail-on", 0, 100);
     else if (a === "--timeout") o.timeout = number(value(++k, "--timeout"), "--timeout", 1000, 600000) ?? 30000;
+    else if (a === "--since") o.since = value(++k, "--since");
+    else if (a === "--allow") o.allow = value(++k, "--allow");
     else if (a === "-h" || a === "--help") o.help = true;
     else if (a === "-v" || a === "--version") o.version = true;
     else if (a.startsWith("-") && a !== "-") o.errors.push(`Unknown option: ${a}`);
@@ -98,6 +105,16 @@ function wrap(text, width, indent) {
   return lines.map((l, idx) => (idx === 0 ? l : indent + l)).join("\n");
 }
 
+function findingLines(f, s) {
+  const tag = f.sev === "crit" ? s.crit("[CRIT]") : f.sev === "warn" ? s.warn("[WARN]") : s.info("[INFO]");
+  const out = [`  ${tag} ${s.bold(f.title)}${f.basis ? "  " + s.dim(f.basis) : ""}`];
+  out.push(`         ${wrap(f.detail, 74, "         ")}`);
+  for (const e of (f.evidence || []).slice(0, 4)) out.push(`         ${s.dim("- " + e)}`);
+  out.push(`         ${s.mag("flush it:")} ${wrap(f.fix, 74, "         ")}`);
+  out.push("");
+  return out;
+}
+
 function renderHuman(result, mode, s) {
   const findings = result.findings.slice().sort((a, b) => SEV_ORDER[a.sev] - SEV_ORDER[b.sev]);
   const score = scoreOf(findings);
@@ -118,18 +135,64 @@ function renderHuman(result, mode, s) {
     out.push(`  ${s.good("Nothing obvious leaking.")} No common exposure tells on this page.`);
     out.push(`  ${s.dim("Keep the real defences server-side.")}`);
   }
-  for (const f of findings) {
-    const tag = f.sev === "crit" ? s.crit("[CRIT]") : f.sev === "warn" ? s.warn("[WARN]") : s.info("[INFO]");
-    out.push(`  ${tag} ${s.bold(f.title)}${f.basis ? "  " + s.dim(f.basis) : ""}`);
-    out.push(`         ${wrap(f.detail, 74, "         ")}`);
-    for (const e of (f.evidence || []).slice(0, 4)) out.push(`         ${s.dim("- " + e)}`);
-    out.push(`         ${s.mag("flush it:")} ${wrap(f.fix, 74, "         ")}`);
-    out.push("");
-  }
+  for (const f of findings) out.push(...findingLines(f, s));
 
   out.push(`  ${s.dim(`mode: ${mode}  -  a diagnosis, not a shield. The real cure is server-side.`)}`);
   out.push("");
   return out.join("\n");
+}
+
+function renderWatch(r, s) {
+  const findings = r.findings.slice().sort((a, b) => SEV_ORDER[a.sev] - SEV_ORDER[b.sev]);
+  const bandColour = r.band.label === "Sealed" ? s.good : r.band.label === "Seeping" ? s.warn : s.crit;
+  const st = r.stats;
+  const when = (iso) => (iso ? iso.slice(0, 16).replace("T", " ") : "");
+  const out = [""];
+  out.push(`  ${s.mag("\u{1F4A9} diarea watch")}  ${s.dim(`${st.events} requests from ${st.actors} actors${st.from ? `, ${when(st.from)} to ${when(st.to)} UTC` : ""}`)}`);
+  out.push(`  ${s.bold(`Watch Score ${r.score}/100`)}  ${bandColour(r.band.label)}  ${s.dim(r.band.line)}`);
+  if (st.skipped || st.allowlisted) out.push(`  ${s.dim(`${st.skipped} lines skipped, ${st.allowlisted} allowlisted`)}`);
+  out.push("");
+  if (!findings.length) out.push(`  ${s.good("Nothing in this log reads like an agent at work.")}`, "");
+  for (const f of findings) out.push(...findingLines(f, s));
+  if (r.actors.length) {
+    out.push(`  ${s.bold("Who, and what to do about them")}`);
+    for (const a of r.actors.slice(0, 10)) {
+      const tier = a.tier === "block" ? s.crit(a.tier.padEnd(9)) : a.tier === "watch" ? s.info(a.tier.padEnd(9)) : s.warn(a.tier.padEnd(9));
+      out.push(`  ${tier} actor ${a.actor}  ${s.dim(`${a.ua}, ${a.events} request${a.events === 1 ? "" : "s"}: ${a.checks.join(", ")}`)}`);
+    }
+    if (r.actors.length > 10) out.push(`  ${s.dim(`...and ${r.actors.length - 10} more (--json for all)`)}`);
+    out.push("");
+  }
+  out.push(`  ${s.dim("Tiers are advice. Diarea reads logs; it never touches your traffic. Actor ids change every run.")}`);
+  out.push("");
+  return out.join("\n");
+}
+
+async function runWatch(o) {
+  if (o.sarif) o.errors.push("--sarif is not available for watch yet. Use --json.");
+  if (o.storageState) o.errors.push("--storage-state only applies to scan.");
+  if (o.errors.length) { console.error(o.errors.join("\n") + "\n" + HELP); return 2; }
+  const target = o._[1];
+  if (!target) { console.error("Nothing to watch. Give a log file, or - for stdin.\n" + HELP); return 2; }
+  const { watch, parseDuration } = await import("../src/watch.js");
+  const { loadAllow } = await import("../src/watch-parse.js");
+  const s = makeStyle(o.color && process.stdout.isTTY && !process.env.NO_COLOR);
+  let since = null;
+  if (o.since != null) {
+    since = parseDuration(o.since);
+    if (since == null) { console.error(`--since must look like 30m, 24h or 7d, not "${o.since}".`); return 2; }
+  }
+  let report;
+  try {
+    report = await watch(target, { since, allow: o.allow ? loadAllow(o.allow) : null });
+  } catch (err) {
+    console.error(`\n  ${s.crit("Could not watch.")} ${err.message}\n`);
+    return 2;
+  }
+  console.log(o.json ? JSON.stringify(report, null, 2) : renderWatch(report, s));
+  if (o.failOn != null && report.score >= o.failOn) return 1;
+  if (o.strict && report.findings.some((f) => f.sev === "crit")) return 1;
+  return 0;
 }
 
 // Only ask when a person is at the keyboard; in CI, pipes and agents the
@@ -172,7 +235,9 @@ async function main() {
     const { setup } = await import("../src/setup.js");
     return setup(process.argv.slice(3));
   }
+  if (cmd === "watch") return runWatch(o);
   if (cmd !== "scan") { console.error(`Unknown command: ${cmd}\n${HELP}`); return 2; }
+  if (o.since != null || o.allow != null) o.errors.push("--since and --allow only apply to diarea watch.");
 
   if (o.errors.length) { console.error(o.errors.join("\n") + "\n" + HELP); return 2; }
 
