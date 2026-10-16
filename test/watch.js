@@ -22,6 +22,55 @@ export const asClf = (r) => `${r.ip} - - [${clfDate(r.t)}] "${r.method} ${r.path
 export const asJson = (r) => JSON.stringify({ timestamp: new Date(r.t).toISOString(), proxy: { clientIp: r.ip, method: r.method, path: r.path, statusCode: r.status, userAgent: r.ua } });
 const tmp = (name, body) => { const f = path.join(os.tmpdir(), `diarea-watch-${process.pid}-${name}`); fs.writeFileSync(f, body); return f; };
 
+const makeRand = (seed) => () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+
+export const LOGS = {
+  sweep: () => Array.from({ length: 15 }, (_, k) => req("198.51.100.7", T0 + k * 20e3, "GET", `/api/quote?plan=pro&amount=${100 + k * 10}`)),
+  halving: () => {
+    const out = [];
+    let lo = 0, hi = 10000;
+    for (let k = 0; k < 14; k++) {
+      const mid = Math.round((lo + hi) / 2);
+      out.push(req("198.51.100.8", T0 + k * 15e3, "GET", `/api/limits/check?amount=${mid}`));
+      if (k % 3 === 0) lo = mid; else hi = mid;
+    }
+    return out;
+  },
+  walk: () => Array.from({ length: 40 }, (_, k) => req("198.51.100.9", T0 + k * 5e3, "GET", `/api/users/${1001 + k}/profile`)),
+  signups: () => Array.from({ length: 6 }, (_, k) => req(`203.0.113.${10 + k}`, T0 + k * 4 * 60e3, "POST", "/api/signup", 201)),
+  probe: () => [
+    ...Array.from({ length: 34 }, (_, k) => req("192.0.2.66", T0 + k * 2e3, "GET", `/old-page-${k}`, 404)),
+    req("192.0.2.66", T0 + 70e3, "GET", "/.env", 404),
+  ],
+  cadence: () => Array.from({ length: 360 }, (_, k) => req("192.0.2.77", T0 + k * 10e3, "GET", "/api/feed")),
+  // Ordinary use: people browsing and paging, an SPA polling, a declared crawler.
+  clean: () => {
+    const rand = makeRand(7);
+    const out = [];
+    const pages = ["/", "/pricing", "/blog", "/blog/launch-notes", "/docs", "/docs/getting-started", "/about", "/login", "/app", "/app/projects", "/app/settings", "/missing-page"];
+    for (let a = 0; a < 5; a++) {
+      let t = T0 + a * 90e3;
+      for (let k = 0; k < 14; k++) {
+        t += 5e3 + rand() * 115e3;
+        const p = pages[Math.floor(rand() * pages.length)];
+        out.push(req(`198.51.100.${120 + a}`, t, "GET", p, p === "/missing-page" ? 404 : 200));
+      }
+      // Review Focus 1: infinite scroll with a cache buster.
+      for (let pg = 1; pg <= 15; pg++) out.push(req(`198.51.100.${120 + a}`, t + pg * 4e3, "GET", `/api/posts?page=${pg}&_=${T0 + pg * 4e3}`));
+    }
+    for (let k = 0; k < 120; k++) out.push(req("198.51.100.130", T0 + k * 30e3, "GET", "/api/notifications"));
+    for (let k = 0; k < 25; k++) out.push(req("66.249.66.1", T0 + k * 7e3, "GET", `/blog/post-${k}`, 200, GOOGLEBOT));
+    out.push(req("198.51.100.121", T0 + 30e3, "GET", "/users/42/orders"));
+    return out.sort((x, y) => x.t - y.t);
+  },
+};
+
+export const run = (records, fmt = asClf) => {
+  const p = makeParser({ salt: "test" });
+  return analyseEvents(records.map(fmt).map((l) => p.parseLine(l)).filter(Boolean));
+};
+const idsOf = (res) => res.findings.map((f) => f.id);
+
 export async function watchTests(check) {
   console.log("Watch:");
   const r = (p) => routeOf(p).route;
@@ -78,4 +127,20 @@ export async function watchTests(check) {
   let bad = "";
   try { loadAllow(tmp("bad.json", JSON.stringify({ networks: ["not-a-range"] }))); } catch (e) { bad = e.message; }
   check(/networks/.test(bad) && !bad.includes(os.tmpdir()), "a bad allowlist names the field, not a local folder");
+  for (const fmt of [asClf, asJson]) {
+    const label = fmt === asClf ? "(Combined Log Format)" : "(JSON lines)";
+    const sweep = run(LOGS.sweep(), fmt);
+    check(idsOf(sweep).includes("param-sweep") && sweep.findings[0].sev === "crit" && /even steps/.test(sweep.findings[0].evidence[0]),
+      `a parameter stepped in even steps is a sweep ${label}`);
+    check(/halving/.test((run(LOGS.halving(), fmt).findings.find((f) => f.id === "param-sweep") || { evidence: [""] }).evidence[0]),
+      `a binary search is a sweep ${label}`);
+    check(idsOf(run(LOGS.walk(), fmt)).includes("id-enumeration"), `consecutive ids are a walk ${label}`);
+  }
+  const rand = makeRand(3);
+  const noisy = Array.from({ length: 15 }, (_, k) => req("198.51.100.7", T0 + k * 20e3, "GET", `/api/quote?amount=${Math.round(rand() * 5000)}`));
+  check(!idsOf(run(noisy)).includes("param-sweep"), "random values are not a sweep");
+  const cleanIds = idsOf(run(LOGS.clean()));
+  check(!cleanIds.includes("param-sweep") && !cleanIds.includes("id-enumeration"), "paging, cache busters and a person's own record are not sweeps or walks");
+  const sweepJson = JSON.stringify(run(LOGS.sweep()));
+  check(!/amount=|198\.51\.100|\b240\b|Mozilla/.test(sweepJson), "sweep findings hold names and counts, never values, IPs or user agents");
 }

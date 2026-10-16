@@ -89,6 +89,88 @@ function tierOf(ids) {
   return "watch";
 }
 
+// Paging, cursors and cache busters step through values on purpose.
+const PAGING = /^(?:page|p|pg|offset|skip|start|limit|per_?page|size|page_?size|cursor|after|before|from|_|t|ts|timestamp|v|cb)$/i;
+const NUMERIC = /^-?\d+(?:\.\d+)?$/;
+
+const dedupe = (vals) => vals.filter((v, k) => k === 0 || v !== vals[k - 1]);
+const gaps = (vals) => vals.slice(1).map((v, k) => Math.abs(v - vals[k])).filter((d) => d > 0);
+const median = (a) => { const s = a.slice().sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+
+function evenSteps(vals) {
+  const d = gaps(vals);
+  if (d.length < 4) return false;
+  const m = median(d);
+  return d.filter((x) => Math.abs(x - m) <= m * 0.1).length / d.length >= 0.75;
+}
+
+function halving(vals) {
+  const d = gaps(vals);
+  if (d.length < 4) return false;
+  let n = 0;
+  for (let k = 1; k < d.length; k++) { const r = d[k] / d[k - 1]; if (r >= 0.35 && r <= 0.65) n++; }
+  return n / (d.length - 1) >= 0.6;
+}
+
+function runRatio(ids) {
+  const v = uniq(ids).sort((a, b) => a - b);
+  let inRuns = 0, len = 1;
+  for (let k = 1; k <= v.length; k++) {
+    if (k < v.length && v[k] - v[k - 1] === 1) len++;
+    else { if (len >= 3) inRuns += len; len = 1; }
+  }
+  return v.length ? inRuns / v.length : 0;
+}
+
+function push(map, key, item) {
+  if (!map.has(key)) map.set(key, []);
+  map.get(key).push(item);
+}
+
+function sweeps(ev) {
+  const groups = new Map();
+  for (const e of ev) for (const [name, raw] of e.params) {
+    if (PAGING.test(name) || !NUMERIC.test(raw)) continue;
+    const v = Number(raw);
+    if (Math.abs(v) >= 1e9) continue; // epoch times, not a probe
+    push(groups, `${e.actor}\0${e.method} ${e.route}\0${name}`, { t: e.t, v });
+  }
+  const hits = [];
+  for (const [key, items] of groups) {
+    let kind = "";
+    const w = findWindow(items, LIMITS.sweepWindow, LIMITS.sweepValues, (w) => {
+      if (new Set(w.map((x) => x.v)).size < LIMITS.sweepValues) return false;
+      const vals = dedupe(w.map((x) => x.v));
+      kind = evenSteps(vals) ? "even steps" : halving(vals) ? "halving the gap" : "";
+      return Boolean(kind);
+    });
+    if (!w) continue;
+    const [actor, where, name] = key.split("\0");
+    hits.push({ actors: [actor], line: `actor ${actor}: ${where} ?${name}, ${new Set(w.map((x) => x.v)).size} values in ${minutes(w)}, ${kind}` });
+  }
+  return hits;
+}
+
+function walks(ev) {
+  const groups = new Map();
+  for (const e of ev) {
+    if (e.ua === "bot") continue;
+    e.ids.forEach((v, k) => push(groups, `${e.actor}\0${e.method} ${e.route}\0${k}`, { t: e.t, v }));
+  }
+  const hits = [];
+  for (const [key, items] of groups) {
+    const w = findWindow(items, LIMITS.enumWindow, LIMITS.enumIds, (w) => {
+      const ids = w.map((x) => x.v);
+      return new Set(ids).size >= LIMITS.enumIds && runRatio(ids) >= LIMITS.enumRun;
+    });
+    if (!w) continue;
+    const [actor, where] = key.split("\0");
+    const ids = w.map((x) => x.v);
+    hits.push({ actors: [actor], line: `actor ${actor}: ${where}, ${new Set(ids).size} ids in ${minutes(w)}, ${Math.round(runRatio(ids) * 100)}% consecutive` });
+  }
+  return hits;
+}
+
 export function analyseEvents(events) {
   const ev = events.slice().sort((a, b) => a.t - b.t);
   const byActor = groupBy(ev, (e) => e.actor);
@@ -104,6 +186,14 @@ export function analyseEvents(events) {
     }
   };
 
+  add("param-sweep", "Something is sweeping a parameter",
+    "An actor stepped one numeric parameter through many values in a few minutes, in even steps or by halving the gap. That is how an agent finds a threshold, a price break or a limit without being told it.",
+    "Keep thresholds and limits server-side and out of responses, rate-limit per route and actor, and answer near-threshold probes with the same response.",
+    sweeps(ev));
+  add("id-enumeration", "Something is walking your ids",
+    "An actor asked for a long run of consecutive record ids. Sequential ids let anyone list every record, and any gap in your authorisation checks becomes a data export.",
+    "Use opaque ids (UUIDs), check authorisation on every record, and rate-limit per actor.",
+    walks(ev));
   // CHECKS
 
   const actors = Array.from(flagged, ([actor, ids]) => ({
