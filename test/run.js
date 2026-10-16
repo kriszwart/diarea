@@ -19,6 +19,7 @@ import { baseDomain, crossOriginScripts, isSourceMap, mapUrlFor } from "../src/c
 import os from "node:os";
 import { spawnSync } from "node:child_process";
 import { scan } from "../src/scan.js";
+import { watchTests } from "./watch.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root0 = () => path.join(here, "..");
@@ -428,6 +429,8 @@ check(fieldsOf(["users[].email", "users[].isAdmin"]).sev === "warn", "other peop
 check(fieldsOf(["items[0].costPrice", "internal_notes"]).evidence[0] === "GET /api/x: items[0].costPrice, internal_notes", "costs and internal notes are flagged anywhere");
 check(fieldsOf(["user.password_hash"]).sev === "crit", "a password hash is critical");
 check(demoReport.findings.some((f) => f.id === "sensitive-fields" && /churnRisk/.test(f.evidence.join(" "))), "the demo's boot payload is read by shape");
+
+await watchTests(check);
 
 console.log(failed === 0
   ? `\nAll ${expected.length} checks fired and every guard passed. Engine is working.\n`
