@@ -1,11 +1,12 @@
 /* Watcher tests: logs are built here, never stored as files. No browser,
  * no network. Run from test/run.js.
  */
-import { routeOf, analyseEvents } from "../src/behaviour.js";
+import { routeOf, analyseEvents, uniq } from "../src/behaviour.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { makeParser, uaClass, loadAllow } from "../src/watch-parse.js";
+import { watch, watchLines, parseDuration } from "../src/watch.js";
 
 export const T0 = Date.UTC(2026, 9, 14, 9, 0, 0);
 export const BROWSER = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36";
@@ -173,4 +174,29 @@ export async function watchTests(check) {
   const started = Date.now();
   analyseEvents(events);
   check(Date.now() - started < 5000, "100,000 events from one actor analyse in under 5 seconds");
+  check(parseDuration("30m") === 1800e3 && parseDuration("24h") === 86400e3 && parseDuration("7d") === 604800e3 && parseDuration("3x") === null,
+    "durations read as minutes, hours and days");
+  const cleanReport = await watchLines(LOGS.clean().map(asJson), { salt: "test" });
+  check(cleanReport.score === 0 && cleanReport.band.label === "Sealed" && cleanReport.mode === "watch" && cleanReport.tool === "diarea",
+    "a clean log scores 0, Sealed");
+  const all = [...LOGS.clean(), ...LOGS.sweep(), ...LOGS.halving(), ...LOGS.walk(), ...LOGS.signups(), ...LOGS.probe(), ...LOGS.cadence()];
+  const report = await watchLines(["garbage", ...all.map(asClf)], { salt: "test" });
+  check(report.score > 40 && report.findings.length === 5 && report.stats.skipped === 1 && report.stats.lines === all.length + 1,
+    "every check fires on the mixed log, and the bad line is counted");
+  const text = JSON.stringify(report);
+  const ips = uniq(all.map((r) => r.ip));
+  check(!ips.some((ip) => text.includes(ip)) && !/amount=|Mozilla|python-requests|Googlebot|jane@/.test(text),
+    "the report holds no IP, query value or user agent");
+  const old = LOGS.sweep().map((r) => ({ ...r, t: r.t - 2 * 86400e3 }));
+  const recent = await watchLines([...old, ...LOGS.clean()].map(asClf), { salt: "test", since: parseDuration("24h") });
+  check(recent.score === 0 && recent.stats.events === LOGS.clean().length, "--since counts back from the newest event");
+  const allowed = await watchLines(LOGS.sweep().map(asClf), { salt: "test", allow: { networks: ["198.51.100.0/24"], userAgents: [], apiKeyPrefixes: [] } });
+  check(allowed.score === 0 && allowed.stats.allowlisted === 15, "allowlisted traffic never reaches the engine");
+  const fails = async (lines) => { try { await watchLines(lines, { salt: "test" }); return ""; } catch (e) { return e.message; } };
+  check(/empty/i.test(await fails([])) && /Combined Log Format/.test(await fails(["nonsense", "more nonsense"])),
+    "an empty or unreadable log is an error");
+  const missing = await watch("no-such-access.log").then(() => "", (e) => e.message);
+  check(missing.includes("no-such-access.log") && !missing.includes(process.cwd()), "a missing file is named as given");
+  const onDisk = await watch(tmp("access.log", LOGS.sweep().map(asClf).join("\r\n") + "\r\n"), { salt: "test" });
+  check(onDisk.findings.some((f) => f.id === "param-sweep"), "a log file with CRLF endings is read from disk");
 }
