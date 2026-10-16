@@ -10,7 +10,7 @@ Open source (MIT). Author: Kris Zwart, ZwartifyDesign.
 2. **CLI**: `npx diarea scan <url|file|folder>` with `--json`, `--sarif`, `--fail-on <score>`, `--strict`, `--timeout`, `--storage-state`; `diarea login <url>` saves a login for live scans.
 3. **CI gate (v2)**: a thin GitHub Action wrapping the CLI exit codes.
 4. **MCP server for coding agents**: `diarea mcp` (stdio, no SDK) with one read-only tool, `diarea_scan`; `diarea setup` registers it with Claude Code (or `--project` writes `.mcp.json`, `--print` shows other agents' config).
-5. **Live API watcher (later)**.
+5. **Watcher**: `diarea watch <log|->` reads a server access log (Combined Log Format or JSON lines) for agent-style use of the API and scores it like a scan. Reads only; live following and middleware come later.
 
 First real target: revoluAItion (revoluaition.com), a client-rendered app, so the live (browser) path matters.
 
@@ -21,6 +21,8 @@ First real target: revoluAItion (revoluaition.com), a client-rendered app, so th
 - `src/collect-page.js` is the in-page collector, a self-contained function run inside a real page. The extension (chrome.scripting), the live CLI (`src/collect-live.js`, Playwright) and the landing page (demo iframe) all use it; never write another one.
 - `src/collect-live.js` loads the page with Playwright, runs `collectPage` and adds the network map. The browser is always closed in a `finally`, because the MCP server is long-lived.
 - `src/scan.js` runs one scan from target to scored report; the CLI and the MCP server both use it. File scans use project-relative paths so reports never show local folder names.
+- `src/behaviour.js` is the watcher's rule engine: parsed log events in, findings, flagged actors and tiers out. Pure (no I/O, clock or randomness) so a middleware can reuse it. Every watcher rule lives here and only here; `src/checks.js` stays the engine for frontend scans. `routeOf` templates paths (ids, UUIDs, hashes, anything with an @) before they can reach a report.
+- `src/watch-parse.js` turns log lines into events: the IP is hashed with a per-run salt (with its /24 or /48), the user agent reduced to a class, and query values kept in memory only. The `--allow` list is applied here, before anything is hashed. `src/watch.js` reads the file or stdin, applies `--since` (relative to the newest event) and scores with `scoreOf` / `bandOf`. No report may hold an IP, a query value or a raw user agent; the tests enforce this.
 - `src/mcp.js` is the MCP server (JSON-RPC over stdio, stdout is protocol only) and `src/setup.js` the `diarea setup` command. Keep the tool read-only and the server instructions defensive. File targets must stay inside the project (symlinks resolved), stdin is never read, and every URL goes through `src/guard.js`: private and loopback addresses only with `--allow-private` (set by the user in the server config, never by a tool argument), link-local and cloud metadata never.
 - `src/guard.js` classifies hosts by name and by every address they resolve to; `collect-live.js` also routes each page request and checks the redirect chain through it.
 - `src/browser.js` starts Chromium for live scans and `diarea login`, turning Playwright's missing-browser error into one that says `npx diarea install-browser`, and installs with Diarea's own bundled Playwright so versions always match. The CLI offers the install interactively (TTY only); CI, pipes and the MCP server just get the instruction.
@@ -36,7 +38,7 @@ First real target: revoluAItion (revoluaition.com), a client-rendered app, so th
 
 ## Checks (current eleven)
 
-Eleven checks covering things like exposed keys, source maps, un-minified or commented bundles, API/GraphQL endpoint maps (including a bare `/graphql`), debug globals, AI system prompts in the bundle, direct calls to AI model APIs and sensitive field names in API responses and boot payloads (judged from key paths made by `src/shape.js`, never values); see `src/checks.js` for the authoritative list. The report rolls findings into a 0 to 100 score with tiered labels (top tier is "Gushing"). A leaky fixture should score high; a clean page should score 0.
+Eleven checks covering things like exposed keys, source maps, un-minified or commented bundles, API/GraphQL endpoint maps (including a bare `/graphql`), debug globals, AI system prompts in the bundle, direct calls to AI model APIs and sensitive field names in API responses and boot payloads (judged from key paths made by `src/shape.js`, never values); see `src/checks.js` for the authoritative list. The report rolls findings into a 0 to 100 score with tiered labels (top tier is "Gushing"). A leaky fixture should score high; a clean page should score 0. The watcher has five checks of its own (`param-sweep`, `id-enumeration`, `signup-burst`, `route-probe`, `machine-cadence`) in `src/behaviour.js`; their ids are stable too.
 
 ## Conventions
 
@@ -55,6 +57,7 @@ npm test
 npm run corpus                     # false-positive check against real libraries (network)
 node bin/diarea.js scan https://example.com
 node bin/diarea.js scan ./dist/index.html --json
+node bin/diarea.js watch ./access.log --since 24h
 ```
 
 ## Roadmap
@@ -67,4 +70,5 @@ node bin/diarea.js scan ./dist/index.html --json
 - [x] Publish to npm as `diarea`
 - [x] MCP server and `diarea setup`, so coding agents run it like REA
 - [x] Release workflow: a version tag publishes to npm and GitHub Releases and moves `v0`
-- [ ] Live API watcher
+- [x] Watcher v1: `diarea watch` reads access logs
+- [ ] Watcher: follow a live log, middleware, MCP tool and Action input

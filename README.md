@@ -154,6 +154,31 @@ Most leakage lives behind the login, so live scans can sign in. `diarea login <u
 
 Options: `--json`, `--sarif`, `--fail-on <score>`, `--strict` (exit 1 on any critical finding), `--timeout <ms>`, `--storage-state <file>`, `--no-color`. Exit codes make it a drop-in CI check: `0` clean or under your threshold, `1` when the score reaches `--fail-on` (or any critical finding with `--strict`), `2` on error.
 
+## Watch your API
+
+The scanner shows what your frontend gives away. `diarea watch` shows who is using it: it reads your server's access log and looks for agents at work.
+
+```
+npx diarea watch /var/log/nginx/access.log --since 24h
+vercel logs --json | npx diarea watch -
+```
+
+It reads Combined Log Format (nginx, Apache, Caddy) and JSON lines (Vercel and Cloudflare log drains, most structured loggers), and checks for:
+
+- **Parameter sweeps**: one numeric parameter stepped through many values, or binary-searched, to find a threshold.
+- **Id walks**: long runs of consecutive record ids.
+- **Sign-up bursts**: many accounts from one actor, network or automation client.
+- **Route probes**: many missing routes, or admin, debug and `.env` paths.
+- **Machine cadence**: a rhythm no person keeps.
+
+Each flagged actor gets a tier (watch, slow, challenge, block). Tiers are advice: Diarea reads the log and never touches your traffic. Actors are salted hashes that change every run, so no IP address, query value or user agent ever reaches the report. Keep researchers and partners out of it with `--allow allow.json`:
+
+```json
+{ "networks": ["203.0.113.0/24"], "userAgents": ["ResearchBot/"], "apiKeyPrefixes": ["pk_partner_"] }
+```
+
+`--json` and `--fail-on` work as they do for `scan`.
+
 ## GitHub Action
 
 Gate your builds on the Leak Score. Scan your built HTML (no browser needed) or a deployed preview URL you own:
@@ -265,7 +290,7 @@ Diarea is the defensive agent. The plan is to let it fight everywhere your code 
 - **v0 (done)** Chrome extension. Scan your own page, get the score.
 - **v1 (done)** CLI: `npx diarea scan <url|file>`, static and live modes, shared engine.
 - **v2 (done)** CI gate. The GitHub Action wraps `--fail-on` and `--strict`, writes a job summary and keeps a Leak Score comment on every pull request.
-- **v3** Watcher: spot agent-style probing hitting your API live.
+- **v3 (started)** Watcher: `diarea watch` reads your access logs for agent-style probing. Live following and middleware next.
 
 ## Contributing
 

@@ -43,6 +43,8 @@ The defensive agent goes live. Instead of only scanning static output, watch for
 - Bulk or rapid automated account creation.
 - Repeated structured probing that looks like extraction rather than use.
 
+**v1 done.** `diarea watch <log>` reads access logs you already have and reports parameter sweeps, id walks, sign-up bursts, route probes and machine cadence, with a tier of advice per actor. It reads; it never blocks. Next: following a live log, a middleware that can slow and challenge, and the MCP tool and Action input.
+
 Graduated responses, not blanket blocking, so real researchers and institutional customers are never caught. This is the part that pairs with the server-side hardening the scanner recommends.
 
 ## Guiding principle

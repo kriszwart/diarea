@@ -2,6 +2,10 @@
 
 All notable changes to Diarea. Versions follow [semantic versioning](https://semver.org/); while it is 0.x, a minor bump can add checks that change scores.
 
+## Unreleased
+
+- **Watch your API.** `diarea watch <log>` reads a server access log (Combined Log Format or JSON lines, from a file or stdin) and reports agent-style use: parameter sweeps, id walks, sign-up bursts, route probes and machine cadence, scored like a scan, with a tier of advice for each actor. Actors are hashed with a fresh salt every run, and no IP address, query value or user agent reaches the report. `--since` keeps the newest stretch, `--allow` keeps researchers and partners out, and `--json` and `--fail-on` work as they do for `scan`.
+
 ## 0.6.0
 
 - **A new check: sensitive fields.** Live scans read the shape of the site's own JSON responses (field names, never values), and every scan reads the shape of the page's boot payload. Password hashes and secrets in that data are critical; costs, margins, internal notes and risk scores are flagged wherever they appear; emails, phone numbers and admin flags only when they sit in a list of records, which means other people's. Third-party responses are left alone. Eleven checks now.
