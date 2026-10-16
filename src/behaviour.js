@@ -11,7 +11,7 @@
 // Starting thresholds, tuned against the logs in test/watch.js.
 export const LIMITS = {
   sweepValues: 12, sweepWindow: 10 * 60e3,
-  enumIds: 25, enumWindow: 10 * 60e3, enumRun: 0.8,
+  enumIds: 25, enumWindow: 10 * 60e3, enumRun: 20,
   signups: 5, signupsAutomation: 10, signupWindow: 60 * 60e3,
   probeRoutes: 30, probeMissRate: 0.4,
   cadenceRequests: 200, cadenceAutomation: 100, cadenceCv: 0.15, cadenceWindow: 60 * 60e3,
@@ -39,14 +39,27 @@ export const TIERS = ["watch", "slow", "challenge", "block"];
 
 const ID_SEGMENT = /^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{16,}|(?=[^/]*\d)[A-Za-z0-9_-]{32,})$/i;
 
-/** Template a path: ids, UUIDs, hashes, long segments and anything with an @ become :id. */
+const FILE_NAME = /^[\w-]*\.(?:m?js|css|map|json|html?|php|aspx?|xml|txt|ico|png|jpe?g|gif|svg|webp|avif|woff2?|ttf|pdf|zip|ya?ml|env)$/i;
+const PHONE = /^\+?[\d\s().-]{7,}$/;
+const IP_LIKE = (d) => /^(?:\d{1,3}\.){3}\d{1,3}$/.test(d) || (d.includes(":") && /^[0-9a-f:.]+$/i.test(d));
+
+// Segments that could be a person, an address or a secret, or that would
+// write control characters to a terminal.
+function personal(s) {
+  if (/[\x00-\x1f\x7f]/.test(s)) return true;
+  let d = s;
+  try { d = decodeURIComponent(s); } catch {}
+  if (ID_SEGMENT.test(s) || s.length > 40 || /@|%40|%20|\+|\s/i.test(s) || IP_LIKE(d) || PHONE.test(d) || /^[A-Za-z]{16,}$/.test(s)) return true;
+  return s.includes(".") && !s.startsWith(".") && !FILE_NAME.test(s);
+}
+
+/** Template a path: ids, UUIDs, hashes, IPs, phone numbers, dotted names and anything with an @ become :id. */
 export function routeOf(pathname) {
   const ids = [];
   const segs = String(pathname || "").split("/").map((s) => {
     if (!s) return s;
     if (/^\d{1,15}$/.test(s)) { ids.push(Number(s)); return ":id"; }
-    if (ID_SEGMENT.test(s) || s.length > 40 || /@|%40/i.test(s)) return ":id";
-    return s;
+    return personal(s) ? ":id" : s;
   });
   return { route: segs.join("/") || "/", ids };
 }
@@ -65,18 +78,20 @@ export function groupBy(items, keyOf) {
 
 export const minutes = (w) => `${Math.max(1, Math.round((w[w.length - 1].t - w[0].t) / 60e3))} min`;
 
-// Windows no longer than `span` over items sorted by t, each starting halfway
-// through the last, so a long log costs about two passes. Returns the first
-// window with at least `min` items that `ok` accepts, or null.
+// Windows no longer than `span` ending at each item, over items sorted by t.
+// `ok` runs when a window first holds `min` items, then every n/16 items as
+// it grows, so a long dense log stays close to linear. Returns the first
+// window `ok` accepts, or null.
 export function findWindow(items, span, min, ok) {
-  let j = 0;
-  for (let i = 0; i < items.length; ) {
-    if (j < i) j = i;
-    while (j < items.length && items[j].t - items[i].t <= span) j++;
-    const w = items.slice(i, j);
-    if (w.length >= min && ok(w)) return w;
-    if (j >= items.length) return null;
-    i += Math.max(1, Math.floor((j - i) / 2));
+  let i = 0, last = -Infinity;
+  for (let j = 0; j < items.length; j++) {
+    while (items[j].t - items[i].t > span) i++;
+    const n = j - i + 1;
+    if (n < min) continue;
+    if (j - last < Math.max(1, Math.floor(n / 16)) && j < items.length - 1) continue;
+    last = j;
+    const w = items.slice(i, j + 1);
+    if (ok(w)) return w;
   }
   return null;
 }
@@ -90,8 +105,16 @@ function tierOf(ids) {
 }
 
 // Paging, cursors and cache busters step through values on purpose.
-const PAGING = /^(?:page|p|pg|offset|skip|start|limit|per_?page|size|page_?size|cursor|after|before|from|_|t|ts|timestamp|v|cb)$/i;
+const PAGING = /page|offset|cursor|since|seq|rev|version|^(?:p|pg|skip|start|limit|size|after|before|from|_|t|ts|timestamp|v|cb)$/i;
 const NUMERIC = /^-?\d+(?:\.\d+)?$/;
+
+/** A query parameter a sweep could be made of: numeric, not paging, not an epoch time. */
+export const sweepable = (name, raw) => !PAGING.test(name) && NUMERIC.test(raw) && Math.abs(Number(raw)) < 1e9;
+
+// Declared crawlers and health checks reading pages are expected; on the API they get no pass.
+const API_ROUTE = /^\/(?:api|graphql|trpc|rest|v\d+)(?:\/|$)/i;
+const HEALTH = /^\/(?:health|healthz|healthcheck|ready|readyz|live|livez|ping|status)\/?$/i;
+const exempt = (e) => e.ua === "bot" && !API_ROUTE.test(e.route);
 
 const dedupe = (vals) => vals.filter((v, k) => k === 0 || v !== vals[k - 1]);
 const gaps = (vals) => vals.slice(1).map((v, k) => Math.abs(v - vals[k])).filter((d) => d > 0);
@@ -112,14 +135,15 @@ function halving(vals) {
   return n / (d.length - 1) >= 0.6;
 }
 
-function runRatio(ids) {
+// How many distinct ids sit in runs of three or more consecutive values.
+function inRuns(ids) {
   const v = uniq(ids).sort((a, b) => a - b);
   let inRuns = 0, len = 1;
   for (let k = 1; k <= v.length; k++) {
     if (k < v.length && v[k] - v[k - 1] === 1) len++;
     else { if (len >= 3) inRuns += len; len = 1; }
   }
-  return v.length ? inRuns / v.length : 0;
+  return inRuns;
 }
 
 function push(map, key, item) {
@@ -130,10 +154,8 @@ function push(map, key, item) {
 function sweeps(ev) {
   const groups = new Map();
   for (const e of ev) for (const [name, raw] of e.params) {
-    if (PAGING.test(name) || !NUMERIC.test(raw)) continue;
-    const v = Number(raw);
-    if (Math.abs(v) >= 1e9) continue; // epoch times, not a probe
-    push(groups, `${e.actor}\0${e.method} ${e.route}\0${name}`, { t: e.t, v });
+    if (!sweepable(name, raw)) continue;
+    push(groups, `${e.actor}\0${e.method} ${e.route}\0${name}`, { t: e.t, v: Number(raw) });
   }
   const hits = [];
   for (const [key, items] of groups) {
@@ -154,25 +176,25 @@ function sweeps(ev) {
 function walks(ev) {
   const groups = new Map();
   for (const e of ev) {
-    if (e.ua === "bot") continue;
+    if (exempt(e)) continue;
     e.ids.forEach((v, k) => push(groups, `${e.actor}\0${e.method} ${e.route}\0${k}`, { t: e.t, v }));
   }
   const hits = [];
   for (const [key, items] of groups) {
     const w = findWindow(items, LIMITS.enumWindow, LIMITS.enumIds, (w) => {
       const ids = w.map((x) => x.v);
-      return new Set(ids).size >= LIMITS.enumIds && runRatio(ids) >= LIMITS.enumRun;
+      return new Set(ids).size >= LIMITS.enumIds && inRuns(ids) >= LIMITS.enumRun;
     });
     if (!w) continue;
     const [actor, where] = key.split("\0");
     const ids = w.map((x) => x.v);
-    hits.push({ actors: [actor], line: `actor ${actor}: ${where}, ${new Set(ids).size} ids in ${minutes(w)}, ${Math.round(runRatio(ids) * 100)}% consecutive` });
+    hits.push({ actors: [actor], line: `actor ${actor}: ${where}, ${new Set(ids).size} ids in ${minutes(w)}, ${inRuns(ids)} of them consecutive` });
   }
   return hits;
 }
 
 const SIGNUP = /^(?:\/api)?(?:\/v\d+)?(?:\/auth)?\/(?:signup|sign-up|sign_up|register|users)\/?$/i;
-const SENSITIVE = /(?:^|\/)(?:admin|internal|debug|_debug|actuator|wp-admin|wp-login\.php|phpmyadmin|server-status|\.env[^/]*|\.git|\.aws|config\.json)(?:\/|$)/i;
+const SENSITIVE = /(?:^|\/)(?:admin|internal|debug|_debug|actuator|wp-admin|wp-login\.php|phpmyadmin|server-status|\.env[^/]*|\.git|\.aws)(?:\/|$)/i;
 
 function bursts(ev) {
   const su = ev.filter((e) => e.method === "POST" && e.status >= 200 && e.status < 400 && SIGNUP.test(e.route));
@@ -193,11 +215,13 @@ function bursts(ev) {
 function probes(byActor) {
   const hits = [];
   for (const [actor, list] of byActor) {
-    const routes = new Set(list.map((e) => e.route));
-    const misses = list.filter((e) => e.status === 404 || e.status === 405).length;
-    if (list[0].ua !== "bot" && routes.size >= LIMITS.probeRoutes && misses / list.length >= LIMITS.probeMissRate)
-      hits.push({ actors: [actor], line: `actor ${actor}: ${routes.size} routes, ${misses} of ${list.length} answered 404 or 405` });
-    const touchy = list.filter((e) => SENSITIVE.test(e.route) && (e.status < 200 || e.status >= 300));
+    const mine = list.filter((e) => !exempt(e));
+    const routes = new Set(mine.map((e) => e.route));
+    const misses = mine.filter((e) => e.status === 404 || e.status === 405).length;
+    if (routes.size >= LIMITS.probeRoutes && misses / mine.length >= LIMITS.probeMissRate)
+      hits.push({ actors: [actor], line: `actor ${actor}: ${routes.size} routes, ${misses} of ${mine.length} answered 404 or 405` });
+    // Redirects to a login page and 401s after a session ends are not probes.
+    const touchy = list.filter((e) => SENSITIVE.test(e.route) && e.status >= 400 && e.status !== 401);
     if (touchy.length)
       hits.push({ actors: [actor], line: `actor ${actor}: ${uniq(touchy.map((e) => `${e.method} ${e.route} (${e.status})`)).slice(0, 3).join(", ")}` });
   }
@@ -208,9 +232,10 @@ function probes(byActor) {
 function cadence(byActor) {
   const hits = [];
   for (const [actor, list] of byActor) {
-    if (list[0].ua === "bot") continue;
-    const ts = list.map((e) => e.t);
-    const automation = list[0].ua === "automation";
+    const mine = list.filter((e) => !exempt(e) && !HEALTH.test(e.route));
+    if (mine.length < 2) continue;
+    const ts = mine.map((e) => e.t);
+    const automation = mine[0].ua === "automation";
     let i = 0, sum = 0, sq = 0, found = null;
     for (let j = 1; j < ts.length && !found; j++) {
       const g = ts[j] - ts[j - 1];

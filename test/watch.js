@@ -218,4 +218,40 @@ export async function watchTests(check) {
   check(cli("watch", cleanLog, "--since", "3x").status === 2, "a bad --since exits 2");
   check(cli("watch", cleanLog, "--sarif").status === 2, "--sarif is refused for watch");
   check(cli("scan", cleanLog, "--since", "1h").status === 2, "--since is refused for scan");
+  // Final review fixes.
+  const walkLate = [
+    req("192.0.2.150", T0, "GET", "/api/items/5000"),
+    ...Array.from({ length: 6 }, (_, k) => req("192.0.2.150", T0 + (k + 1) * 60e3, "GET", `/api/items/${6000 + k * 37}`)),
+    ...Array.from({ length: 25 }, (_, k) => req("192.0.2.150", T0 + 390e3 + k * 4e3, "GET", `/api/items/${9000 + k}`)),
+  ];
+  check(idsOf(run(walkLate)).includes("id-enumeration"), "a walk that starts late in a sparse window is still a walk");
+  check(["/lookup/203.0.113.5", "/x/2001:db8::1", "/users/+447700900123", "/u/jane.doe", "/reset/abcdefghijklmnopqrstuv", "/admin/\u001b[31mred"]
+    .every((p) => routeOf(p).route.endsWith("/:id")) && r("/users/Jane%20Doe/admin") === "/users/:id/admin",
+    "IPs, phone numbers, dotted names, long tokens and control characters in paths are templated");
+  check(["/assets/app.js", "/.env", "/robots.txt", "/wp-login.php", "/.git/config"].every((p) => r(p) === p), "file names and dotfiles keep their names");
+  const paging = [
+    ...Array.from({ length: 20 }, (_, k) => req("198.51.100.140", T0 + k * 5e3, "GET", `/api/list?pageNumber=${k + 1}`)),
+    ...Array.from({ length: 20 }, (_, k) => req("198.51.100.141", T0 + k * 5e3, "GET", `/api/list?page%5Bnumber%5D=${k + 1}`)),
+    ...Array.from({ length: 20 }, (_, k) => req("198.51.100.142", T0 + k * 5e3, "GET", `/api/chat?since_id=${5000 + k}`)),
+  ];
+  check(!idsOf(run(paging)).includes("param-sweep"), "pageNumber, page[number] and since_id are paging, not sweeps");
+  const androidUa = "okhttp/4.12.0";
+  check(uaClass(androidUa) === "app" && uaClass("MyApp/3 CFNetwork/1490 Darwin/23") === "app" && uaClass("Dart/3.4 (dart:io)") === "app", "mobile app clients are apps, not automation");
+  const android = Array.from({ length: 12 }, (_, k) => req(`198.18.${k}.9`, T0 + k * 5 * 60e3, "POST", "/api/signup", 201, androidUa));
+  check(!idsOf(run(android)).includes("signup-burst"), "a dozen Android users signing up is not a burst");
+  const health = Array.from({ length: 360 }, (_, k) => req("10.0.1.5", T0 + k * 10e3, "GET", "/health", 200, "ELB-HealthChecker/2.0"));
+  check(run(health).findings.length === 0, "load balancer health checks raise nothing");
+  const admin = [req("198.51.100.150", T0, "GET", "/admin/", 302), req("198.51.100.150", T0 + 1e3, "GET", "/config.json", 304), req("198.51.100.151", T0, "GET", "/admin", 401)];
+  check(!idsOf(run(admin)).includes("route-probe"), "admin redirects, 304s and 401s are not probes");
+  const micro = makeParser({ salt: "test" }).parseLine(JSON.stringify({ timestamp: T0 * 1000, ip: "192.0.2.1", method: "GET", path: "/", status: 200 }));
+  check(micro && micro.t === T0, "microsecond timestamps read as microseconds");
+  const slim = makeParser({ salt: "test" }).parseLine(asClf(req("192.0.2.1", T0, "GET", "/x?q=hello&page=2&amount=5&_=1700000000000")));
+  check(slim.params.size === 1 && slim.params.get("amount") === "5", "only parameters a sweep could use are kept in memory");
+  const fakeBot = Array.from({ length: 40 }, (_, k) => req("192.0.2.160", T0 + k * 2e3, "GET", `/api/users/${1 + k}`, 200, GOOGLEBOT));
+  check(idsOf(run(fakeBot)).includes("id-enumeration"), "a crawler user agent is no pass for walking the API");
+  check(makeParser({ salt: "test" }).parseLine(JSON.stringify({ timestamp: T0, ip: "192.0.2.1", method: "\u001b[31mGET", path: "/", status: 200 })) === null,
+    "a method with control characters is refused");
+  const caddy = makeParser({ salt: "test" }).parseLine(JSON.stringify({ ts: T0 / 1000, status: 200,
+    request: { remote_ip: "192.0.2.1", method: "GET", uri: "/api/x?amount=3", headers: { "User-Agent": ["curl/8.4.0"] } } }));
+  check(caddy && caddy.t === T0 && caddy.route === "/api/x" && caddy.ua === "automation", "Caddy's default JSON log parses");
 }

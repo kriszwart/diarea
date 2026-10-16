@@ -6,7 +6,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { isIP } from "node:net";
-import { routeOf } from "./behaviour.js";
+import { routeOf, sweepable } from "./behaviour.js";
 import { inV4, v6Groups } from "./guard.js";
 
 const CLF = /^(\S+) \S+ \S+ \[([^\]]+)\] "([A-Za-z]+) (\S+)[^"]*" (\d{3}) \S+(?: "[^"]*" "([^"]*)")?/;
@@ -14,19 +14,22 @@ const MONTHS = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7,
 
 const FIELDS = {
   t: ["timestamp", "time", "ts", "EdgeStartTimestamp", "@timestamp"],
-  ip: ["ip", "clientIp", "client_ip", "ClientIP", "remote_addr", "proxy.clientIp"],
+  ip: ["ip", "clientIp", "client_ip", "ClientIP", "remote_addr", "proxy.clientIp", "request.remote_ip", "request.client_ip"],
   method: ["method", "ClientRequestMethod", "proxy.method", "request.method"],
-  path: ["path", "url", "ClientRequestURI", "request.url", "proxy.path"],
+  path: ["path", "url", "ClientRequestURI", "request.url", "request.uri", "proxy.path"],
   status: ["status", "statusCode", "EdgeResponseStatus", "proxy.statusCode"],
-  ua: ["userAgent", "user_agent", "ClientRequestUserAgent", "proxy.userAgent"],
+  ua: ["userAgent", "user_agent", "ClientRequestUserAgent", "proxy.userAgent", "request.headers.User-Agent"],
   auth: ["authorization", "headers.authorization", "request.headers.authorization", "proxy.authorization"],
 };
 
-const AUTOMATION = /curl|wget|python-requests|python-urllib|aiohttp|httpx|go-http-client|axios|node-fetch|undici|okhttp|java\/|libwww|headlesschrome|playwright|puppeteer|selenium|phantomjs|scrapy|postman/i;
-const BOT = /bot\b|crawler|spider|slurp|facebookexternalhit/i;
+const AUTOMATION = /curl|wget|python-requests|python-urllib|aiohttp|httpx|go-http-client|axios|node-fetch|undici|java\/|libwww|headlesschrome|playwright|puppeteer|selenium|phantomjs|scrapy|postman/i;
+const BOT = /bot\b|crawler|spider|slurp|facebookexternalhit|healthchecker|kube-probe|googlehc|uptimerobot|pingdom|statuscake|consul/i;
+// Mobile app HTTP stacks: real people, not scripts.
+const APP = /okhttp|cfnetwork|dart\/|dalvik|alamofire/i;
 
 export function uaClass(ua) {
   if (!ua || ua === "-") return "unknown";
+  if (APP.test(ua)) return "app";
   if (AUTOMATION.test(ua)) return "automation";
   if (BOT.test(ua)) return "bot";
   if (/mozilla\/5\.0/i.test(ua)) return "browser";
@@ -44,7 +47,7 @@ const pick = (o, keys) => {
 // Seconds, milliseconds or nanoseconds since the epoch, or a date string.
 function toTime(v) {
   const n = typeof v === "number" ? v : /^\d+(?:\.\d+)?$/.test(String(v)) ? Number(v) : NaN;
-  if (Number.isFinite(n)) return n > 1e15 ? Math.round(n / 1e6) : n > 1e12 ? n : Math.round(n * 1000);
+  if (Number.isFinite(n)) return n > 1e17 ? Math.round(n / 1e6) : n > 1e14 ? Math.round(n / 1e3) : n > 1e11 ? n : Math.round(n * 1000);
   return Date.parse(v);
 }
 
@@ -133,6 +136,14 @@ function isAllowed(r, allow) {
   return Boolean(key) && allow.apiKeyPrefixes.some((s) => key.startsWith(s));
 }
 
+// Only values a sweep could be made of stay in memory, which keeps big logs small.
+const NONE = new Map();
+function keep(params) {
+  const kept = new Map();
+  for (const [name, raw] of params) if (sweepable(name, raw)) kept.set(name, raw);
+  return kept.size ? kept : NONE;
+}
+
 export function makeParser({ salt, allow = null }) {
   const hash = (s) => crypto.createHmac("sha256", salt).update(s).digest("hex").slice(0, 10);
   const p = { lines: 0, parsed: 0, allowed: 0, parseLine };
@@ -141,7 +152,7 @@ export function makeParser({ salt, allow = null }) {
     p.lines++;
     const text = line.trim();
     const r = text.startsWith("{") ? fromJson(text) : fromClf(text);
-    if (!r || !Number.isFinite(r.t) || !r.ip || !r.method || !r.path || !Number.isFinite(r.status)) return null;
+    if (!r || !Number.isFinite(r.t) || !r.ip || !/^[A-Za-z]{1,16}$/.test(r.method) || !r.path || !Number.isFinite(r.status)) return null;
     const split = splitPath(r.path);
     if (!split) return null;
     p.parsed++;
@@ -149,7 +160,7 @@ export function makeParser({ salt, allow = null }) {
     const { route, ids } = routeOf(split.pathname);
     return {
       t: r.t, actor: hash(r.ip + "\0" + r.ua), net: hash(networkOf(r.ip)), method: r.method.toUpperCase(),
-      route, ids, params: split.params, status: r.status, ua: uaClass(r.ua),
+      route, ids, params: keep(split.params), status: r.status, ua: uaClass(r.ua),
     };
   }
   return p;

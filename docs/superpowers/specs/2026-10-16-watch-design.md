@@ -41,7 +41,7 @@ diarea watch <log-file|-> [--json] [--fail-on <score>] [--since <duration>] [--a
 
 Detected per file from the first non-empty lines.
 
-1. **Combined Log Format** (nginx, Apache and Caddy defaults; Common Log Format also accepted, without referrer and user agent).
+1. **Combined Log Format** (nginx and Apache defaults; Common Log Format also accepted, without referrer and user agent).
 2. **JSON lines.** Field names are matched from a short list of aliases, which covers Vercel and Cloudflare log drains and most structured loggers:
    - time: `timestamp`, `time`, `ts`, `EdgeStartTimestamp`, `@timestamp`
    - IP: `ip`, `clientIp`, `client_ip`, `ClientIP`, `remote_addr`, `proxy.clientIp`
@@ -65,7 +65,7 @@ Every parsed line becomes:
 - `route`: the path templated by `routeOf` (below), without the query string.
 - `params`: `Map` of query parameter name to raw value. Values live only in memory, during the run, for the checks that need them, and never reach a finding.
 - `status`: number.
-- `ua`: user agent class only: `browser`, `automation` (curl, python-requests, Go-http-client, axios, node-fetch, HeadlessChrome, Playwright, Puppeteer and similar), `bot` (declared crawlers) or `unknown`. The raw string is dropped after classing.
+- `ua`: user agent class only: `browser`, `app` (mobile HTTP stacks such as okhttp and CFNetwork), `automation` (curl, python-requests, Go-http-client, axios, node-fetch, HeadlessChrome, Playwright, Puppeteer and similar), `bot` (declared crawlers) or `unknown`. The raw string is dropped after classing.
 - The IP is kept only long enough to hash it and to derive its /24 (IPv4) or /48 (IPv6) network, itself hashed with the same salt, for `signup-burst`.
 
 ## Modules

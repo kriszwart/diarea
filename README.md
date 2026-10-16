@@ -163,7 +163,7 @@ npx diarea watch /var/log/nginx/access.log --since 24h
 vercel logs --json | npx diarea watch -
 ```
 
-It reads Combined Log Format (nginx, Apache, Caddy) and JSON lines (Vercel and Cloudflare log drains, most structured loggers), and checks for:
+It reads Combined Log Format (nginx, Apache) and JSON lines (Caddy, Vercel and Cloudflare log drains, most structured loggers), and checks for:
 
 - **Parameter sweeps**: one numeric parameter stepped through many values, or binary-searched, to find a threshold.
 - **Id walks**: long runs of consecutive record ids.
