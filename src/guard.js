@@ -27,7 +27,7 @@ const METADATA_HOSTS = new Set(["metadata", "metadata.google.internal", "metadat
 function v4ToInt(ip) {
   return ip.split(".").reduce((n, p) => (n << 8) + Number(p), 0) >>> 0;
 }
-const inV4 = (ip, base, bits) => bits === 0 || (v4ToInt(ip) >>> (32 - bits)) === (v4ToInt(base) >>> (32 - bits));
+export const inV4 = (ip, base, bits) => bits === 0 || (v4ToInt(ip) >>> (32 - bits)) === (v4ToInt(base) >>> (32 - bits));
 
 function classifyV4(ip) {
   if (inV4(ip, "169.254.0.0", 16)) return ALWAYS_BLOCKED;
@@ -37,7 +37,7 @@ function classifyV4(ip) {
 }
 
 // Expand an IPv6 address to eight 16-bit groups.
-function v6Groups(ip) {
+export function v6Groups(ip) {
   let s = ip.toLowerCase().split("%")[0];
   const v4 = s.match(/(\d+\.\d+\.\d+\.\d+)$/);
   if (v4) {
