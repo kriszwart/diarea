@@ -171,6 +171,65 @@ function walks(ev) {
   return hits;
 }
 
+const SIGNUP = /^(?:\/api)?(?:\/v\d+)?(?:\/auth)?\/(?:signup|sign-up|sign_up|register|users)\/?$/i;
+const SENSITIVE = /(?:^|\/)(?:admin|internal|debug|_debug|actuator|wp-admin|wp-login\.php|phpmyadmin|server-status|\.env[^/]*|\.git|\.aws|config\.json)(?:\/|$)/i;
+
+function bursts(ev) {
+  const su = ev.filter((e) => e.method === "POST" && e.status >= 200 && e.status < 400 && SIGNUP.test(e.route));
+  const hits = [];
+  const scan = (groups, label, min, needActors = 1) => {
+    for (const [key, items] of groups) {
+      const w = findWindow(items, LIMITS.signupWindow, min, (w) => new Set(w.map((e) => e.actor)).size >= needActors);
+      if (w) hits.push({ actors: uniq(w.map((e) => e.actor)), line: `${label} ${key}: ${w.length} sign-ups in ${minutes(w)} (POST ${w[0].route})` });
+    }
+  };
+  scan(groupBy(su, (e) => e.actor), "actor", LIMITS.signups);
+  // A network counts when several actors share it; one actor is caught above.
+  scan(groupBy(su, (e) => e.net), "network", LIMITS.signups, 2);
+  scan(groupBy(su.filter((e) => e.ua === "automation"), () => "automation"), "user agent class", LIMITS.signupsAutomation, 2);
+  return hits;
+}
+
+function probes(byActor) {
+  const hits = [];
+  for (const [actor, list] of byActor) {
+    const routes = new Set(list.map((e) => e.route));
+    const misses = list.filter((e) => e.status === 404 || e.status === 405).length;
+    if (list[0].ua !== "bot" && routes.size >= LIMITS.probeRoutes && misses / list.length >= LIMITS.probeMissRate)
+      hits.push({ actors: [actor], line: `actor ${actor}: ${routes.size} routes, ${misses} of ${list.length} answered 404 or 405` });
+    const touchy = list.filter((e) => SENSITIVE.test(e.route) && (e.status < 200 || e.status >= 300));
+    if (touchy.length)
+      hits.push({ actors: [actor], line: `actor ${actor}: ${uniq(touchy.map((e) => `${e.method} ${e.route} (${e.status})`)).slice(0, 3).join(", ")}` });
+  }
+  return hits;
+}
+
+// Running sums over an hour-long window, so this stays one pass per actor.
+function cadence(byActor) {
+  const hits = [];
+  for (const [actor, list] of byActor) {
+    if (list[0].ua === "bot") continue;
+    const ts = list.map((e) => e.t);
+    const automation = list[0].ua === "automation";
+    let i = 0, sum = 0, sq = 0, found = null;
+    for (let j = 1; j < ts.length && !found; j++) {
+      const g = ts[j] - ts[j - 1];
+      sum += g; sq += g * g;
+      while (ts[j] - ts[i] > LIMITS.cadenceWindow) { const h = ts[i + 1] - ts[i]; sum -= h; sq -= h * h; i++; }
+      const n = j - i;
+      const count = n + 1;
+      if (automation && count >= LIMITS.cadenceAutomation) found = `${count} requests in an hour from an automation client`;
+      else if (count >= LIMITS.cadenceRequests && sum > 0) {
+        const mean = sum / n;
+        const cv = Math.sqrt(Math.max(0, sq / n - mean * mean)) / mean;
+        if (cv < LIMITS.cadenceCv) found = `${count} requests in an hour, ${Math.round(mean / 1000)}s apart, near-identical gaps`;
+      }
+    }
+    if (found) hits.push({ actors: [actor], line: `actor ${actor}: ${found}` });
+  }
+  return hits;
+}
+
 export function analyseEvents(events) {
   const ev = events.slice().sort((a, b) => a.t - b.t);
   const byActor = groupBy(ev, (e) => e.actor);
@@ -194,7 +253,18 @@ export function analyseEvents(events) {
     "An actor asked for a long run of consecutive record ids. Sequential ids let anyone list every record, and any gap in your authorisation checks becomes a data export.",
     "Use opaque ids (UUIDs), check authorisation on every record, and rate-limit per actor.",
     walks(ev));
-  // CHECKS
+  add("signup-burst", "Sign-ups are arriving in bursts",
+    "Many accounts were created from one actor, one network or one automation client within an hour. Free tiers, trials and referral credit are usually the prize.",
+    "Add a bot challenge and email verification to sign-up, and limit sign-ups per network.",
+    bursts(ev));
+  add("route-probe", "Something is probing your routes",
+    "An actor tried many routes that do not exist, or went looking for admin, debug or config paths. That is a map being drawn.",
+    "Remove dead and debug routes, alert on admin probes, and never answer them with detail.",
+    probes(byActor));
+  add("machine-cadence", "Traffic at machine cadence",
+    "An actor made requests at a rhythm no person keeps, or announced itself as an automation client at volume. Not always hostile, but worth knowing who it is.",
+    "Slow such actors gradually rather than blocking them outright, and give known integrations an API key so they stand out.",
+    cadence(byActor));
 
   const actors = Array.from(flagged, ([actor, ids]) => ({
     actor, ua: byActor.get(actor)[0].ua, events: byActor.get(actor).length, checks: Array.from(ids), tier: tierOf(ids),

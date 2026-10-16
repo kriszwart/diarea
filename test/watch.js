@@ -143,4 +143,34 @@ export async function watchTests(check) {
   check(!cleanIds.includes("param-sweep") && !cleanIds.includes("id-enumeration"), "paging, cache busters and a person's own record are not sweeps or walks");
   const sweepJson = JSON.stringify(run(LOGS.sweep()));
   check(!/amount=|198\.51\.100|\b240\b|Mozilla/.test(sweepJson), "sweep findings hold names and counts, never values, IPs or user agents");
+  for (const fmt of [asClf, asJson]) {
+    const label = fmt === asClf ? "(Combined Log Format)" : "(JSON lines)";
+    check(idsOf(run(LOGS.signups(), fmt)).includes("signup-burst"), `six sign-ups from one network in half an hour are a burst ${label}`);
+    const probe = run(LOGS.probe(), fmt).findings.find((f) => f.id === "route-probe");
+    check(probe && probe.evidence.length === 2 && /\.env/.test(probe.evidence[1]), `missing routes and a .env request are a probe ${label}`);
+    check(idsOf(run(LOGS.cadence(), fmt)).includes("machine-cadence"), `a request every ten seconds for an hour is machine cadence ${label}`);
+  }
+  const auto = Array.from({ length: 12 }, (_, k) => req(`198.18.${k}.9`, T0 + k * 5 * 60e3, "POST", "/auth/register", 201, "python-requests/2.32"));
+  check(idsOf(run(auto)).includes("signup-burst"), "a dozen sign-ups from an automation client are a burst, across networks");
+  const clean = run(LOGS.clean());
+  check(clean.findings.length === 0 && clean.actors.length === 0, "ordinary browsing, an SPA poll and a crawler raise nothing");
+
+  const mix = run([...LOGS.clean(), ...LOGS.sweep(), ...LOGS.signups(), ...LOGS.cadence()]);
+  const tierOfIp = (ip, ua = BROWSER) => {
+    const id = makeParser({ salt: "test" }).parseLine(asClf(req(ip, T0, "GET", "/", 200, ua))).actor;
+    return (mix.actors.find((a) => a.actor === id) || {}).tier;
+  };
+  check(tierOfIp("198.51.100.7") === "block" && tierOfIp("203.0.113.10") === "challenge" && tierOfIp("192.0.2.77") === "watch",
+    "tiers: a sweep is block, a sign-up burst challenge, cadence alone watch");
+  check(mix.actors[0].tier === "block", "the worst actors come first");
+
+  // Review Focus 3: big logs stay fast.
+  const bigRand = makeRand(11);
+  let t = T0;
+  const big = Array.from({ length: 100000 }, (_, k) => { t += 200 + bigRand() * 4000; return req("192.0.2.200", t, "GET", `/api/items?q=${Math.floor(bigRand() * 50)}`); });
+  const p = makeParser({ salt: "test" });
+  const events = big.map(asClf).map((l) => p.parseLine(l));
+  const started = Date.now();
+  analyseEvents(events);
+  check(Date.now() - started < 5000, "100,000 events from one actor analyse in under 5 seconds");
 }
